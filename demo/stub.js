@@ -24,9 +24,9 @@
     c.width = c.height = 160;
     const g = c.getContext('2d');
     const grad = g.createLinearGradient(0, 0, 160, 160);
-    grad.addColorStop(0, '#13c4c9');
-    grad.addColorStop(0.55, '#1b6fd8');
-    grad.addColorStop(1, '#2a1f7a');
+    grad.addColorStop(0, '#dfb6b2');
+    grad.addColorStop(0.5, '#854f6c');
+    grad.addColorStop(1, '#2b124c');
     g.fillStyle = grad;
     g.fillRect(0, 0, 160, 160);
     g.fillStyle = 'rgba(255,255,255,0.85)';
