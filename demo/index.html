@@ -1,0 +1,386 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; connect-src 'self' ipc: http://ipc.localhost" />
+  <title>Lagon</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="island" class="idle">
+    <!-- compact pill -->
+    <div class="compact">
+      <img class="c-art" alt="" />
+      <div class="c-text"></div>
+      <div class="eq" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+      <div class="c-clock"></div>
+      <!-- little face shown when nothing plays -->
+      <!-- .face moves (left of the clock / centre when asleep); .face-in carries the hop and breathing -->
+      <div class="face" aria-hidden="true">
+        <div class="face-in">
+          <i class="eye l"></i><i class="eye r"></i>
+          <i class="cheek l"></i><i class="cheek r"></i>
+          <span class="zzz"><b>z</b><b>z</b><b>z</b></span>
+        </div>
+      </div>
+      <!-- volume indicator, shown for a moment when the volume changes -->
+      <!-- pop-ups: volume, brightness, caps lock, keyboard language, battery, network, headset -->
+      <div class="c-osd">
+        <span class="o-icon"></span>
+        <div class="o-text"><b class="o-title"></b><span class="o-sub"></span></div>
+        <div class="o-bar"><div class="o-fill"></div></div>
+        <span class="o-pct"></span>
+      </div>
+    </div>
+
+    <!-- live ticker: a second row under the closed island while streaming -->
+    <div class="ticker" aria-live="polite"><i class="tk-dot"></i><span class="tk-text"></span></div>
+
+    <!-- expanded card -->
+    <div class="full">
+      <nav class="tabs">
+        <button data-page="music" title="Musique" class="on">
+          <svg viewBox="0 0 24 24"><path d="M9 17.5V6.2a1 1 0 0 1 .78-.98l9-2A1 1 0 0 1 20 4.2v11.3"/><circle cx="6.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="15.5" r="2.5"/></svg>
+        </button>
+        <button data-page="sound" title="Son">
+          <svg viewBox="0 0 24 24"><path d="M4 9.5h3.2L12 5.5v13l-4.8-4H4z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></svg>
+        </button>
+        <button data-page="pc" title="PC">
+          <svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/><rect x="9.5" y="9.5" width="5" height="5" rx="1"/><path d="M9 3v3M15 3v3M9 18v3M15 18v3M3 9h3M3 15h3M18 9h3M18 15h3"/></svg>
+        </button>
+        <button data-page="time" title="Temps d’écran">
+          <svg viewBox="0 0 24 24"><path d="M7 3h10M7 21h10M8 3v2.5a4 4 0 0 0 1.6 3.2L12 12l-2.4 3.3A4 4 0 0 0 8 18.5V21M16 3v2.5a4 4 0 0 1-1.6 3.2L12 12l2.4 3.3a4 4 0 0 1 1.6 3.2V21"/></svg>
+        </button>
+        <button data-page="twitch" title="Twitch">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="2"/><path d="M8.5 15.5a5 5 0 0 1 0-7M15.5 8.5a5 5 0 0 1 0 7M5.6 18.4a9 9 0 0 1 0-12.8M18.4 5.6a9 9 0 0 1 0 12.8"/></svg>
+          <i class="live-dot"></i>
+        </button>
+        <button data-page="valorant" title="Valorant">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7.5"/><path d="M12 2.5v5M12 16.5v5M2.5 12h5M16.5 12h5"/><circle cx="12" cy="12" r="0.6"/></svg>
+        </button>
+      </nav>
+
+      <!-- only inside the open card, so it is never visible when the island is closed -->
+      <button class="gear" title="Paramètres" aria-label="Paramètres">
+        <svg viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
+
+      <div class="pages">
+        <!-- music -->
+        <section class="page music">
+          <div class="empty">
+            <div class="e-time"></div>
+            <div class="e-date"></div>
+            <div class="e-hint">Rien en lecture</div>
+          </div>
+          <div class="player">
+            <div class="head">
+              <div class="art-wrap"><img class="art" alt="" /></div>
+              <div class="meta">
+                <div class="title"></div>
+                <div class="artist"></div>
+                <div class="source"></div>
+              </div>
+              <div class="controls">
+                <button data-cmd="prev" title="Précédent">
+                  <svg viewBox="0 0 24 24"><path d="M6 5h2v14H6zM20 5.5v13a.5.5 0 0 1-.77.42L9.5 12.42a.5.5 0 0 1 0-.84l9.73-6.5a.5.5 0 0 1 .77.42z"/></svg>
+                </button>
+                <button data-cmd="toggle" class="play" title="Lecture / Pause">
+                  <svg class="i-play" viewBox="0 0 24 24"><path d="M7 4.6v14.8a.6.6 0 0 0 .92.5l11.5-7.4a.6.6 0 0 0 0-1L7.92 4.1A.6.6 0 0 0 7 4.6z"/></svg>
+                  <svg class="i-pause" viewBox="0 0 24 24"><rect x="6" y="4.5" width="4.2" height="15" rx="1.2"/><rect x="13.8" y="4.5" width="4.2" height="15" rx="1.2"/></svg>
+                </button>
+                <button data-cmd="next" title="Suivant">
+                  <svg viewBox="0 0 24 24"><path d="M16 5h2v14h-2zM4 5.5v13a.5.5 0 0 0 .77.42l9.73-6.5a.5.5 0 0 0 0-.84L4.77 5.08A.5.5 0 0 0 4 5.5z"/></svg>
+                </button>
+              </div>
+            </div>
+            <div class="lyrics">
+              <div class="l-cur"></div>
+              <div class="l-next"></div>
+            </div>
+            <div class="progress">
+              <span class="t-pos">0:00</span>
+              <div class="bar"><div class="fill"></div><div class="knob"></div></div>
+              <span class="t-dur">0:00</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- sound -->
+        <section class="page sound">
+          <div class="master">
+            <button class="spk" title="Couper le son"></button>
+            <input type="range" min="0" max="100" step="1" value="0" aria-label="Volume général" />
+            <span class="pct">–</span>
+          </div>
+          <div class="apps"></div>
+        </section>
+
+        <!-- pc -->
+        <section class="page pc">
+          <div class="tile" data-stat="cpu"><span class="k">CPU</span><span class="v">–</span><span class="s">utilisation</span><div class="b"><i></i></div></div>
+          <div class="tile" data-stat="gpu"><span class="k">GPU</span><span class="v">–</span><span class="s">RTX</span><div class="b"><i></i></div></div>
+          <div class="tile" data-stat="gpuTemp"><span class="k">Temp. GPU</span><span class="v">–</span><span class="s">&nbsp;</span><div class="b"><i></i></div></div>
+          <div class="tile" data-stat="ram"><span class="k">RAM</span><span class="v">–</span><span class="s">&nbsp;</span><div class="b"><i></i></div></div>
+          <div class="tile" data-stat="vram"><span class="k">VRAM</span><span class="v">–</span><span class="s">&nbsp;</span><div class="b"><i></i></div></div>
+          <div class="tile" data-stat="ping"><span class="k">Ping</span><span class="v">–</span><span class="s">&nbsp;</span><div class="b"><i></i></div></div>
+        </section>
+
+        <!-- screen time -->
+        <section class="page time">
+          <div class="t-left">
+            <span class="t-k">Temps d’écran</span>
+            <span class="t-total">–</span>
+            <span class="t-sub">aujourd’hui</span>
+            <div class="week"></div>
+          </div>
+          <div class="t-apps"></div>
+        </section>
+
+        <!-- twitch -->
+        <section class="page twitch">
+          <div class="tw-off"><span class="tw-msg"></span></div>
+          <div class="tw-grid">
+            <div class="tile" data-tw="status"><span class="k">Statut</span><span class="v">–</span><span class="s">&nbsp;</span></div>
+            <div class="tile" data-tw="followers"><span class="k">Followers</span><span class="v">–</span><span class="s">au total</span></div>
+            <div class="tile" data-tw="today"><span class="k">Aujourd’hui</span><span class="v">–</span><span class="s">nouveaux followers</span></div>
+            <div class="tile" data-tw="subs"><span class="k">Subs</span><span class="v">–</span><span class="s">&nbsp;</span></div>
+            <div class="tile" data-tw="viewers"><span class="k">Spectateurs</span><span class="v">–</span><span class="s">&nbsp;</span></div>
+            <div class="tile" data-tw="uptime"><span class="k">Durée du live</span><span class="v">–</span><span class="s">&nbsp;</span></div>
+          </div>
+        </section>
+
+        <!-- valorant -->
+        <section class="page valorant">
+          <div class="vl-off"><span class="vl-msg"></span></div>
+          <div class="vl-grid">
+            <div class="tile vl-rank">
+              <img class="vl-icon" alt="" />
+              <div class="vl-rank-txt">
+                <span class="v vl-tier">–</span>
+                <span class="s vl-who">&nbsp;</span>
+                <div class="b"><i></i></div>
+                <span class="s vl-rr">&nbsp;</span>
+              </div>
+            </div>
+            <div class="tile" data-vl="last"><span class="k">Dernier match</span><span class="v">–</span><span class="s">&nbsp;</span></div>
+            <div class="tile" data-vl="today"><span class="k">Aujourd’hui</span><span class="v">–</span><span class="s">&nbsp;</span></div>
+            <div class="tile" data-vl="ratio"><span class="k">Ratio V/D du jour</span><span class="v">–</span><span class="s">&nbsp;</span></div>
+            <div class="tile" data-vl="peak"><span class="k">Meilleur rang</span><span class="v">–</span><span class="s">&nbsp;</span></div>
+          </div>
+        </section>
+
+        <!-- settings (opened with the gear, no tab) -->
+        <section class="page settings">
+          <nav class="s-nav" aria-label="Catégories">
+            <button data-cat="bar" class="on">Barre</button>
+            <button data-cat="music">Musique</button>
+            <button data-cat="sound">Son</button>
+            <button data-cat="pc">PC</button>
+            <button data-cat="time">Temps d’écran</button>
+            <button data-cat="twitch">Twitch</button>
+            <button data-cat="valorant">Valorant</button>
+            <button data-cat="face">Petit visage</button>
+            <button data-cat="hud">HUD &amp; popups</button>
+            <button data-cat="perf">Performance</button>
+          </nav>
+
+          <div class="s-panels">
+            <div class="s-panel on" data-cat="bar">
+              <span class="s-k">Barre</span>
+              <span class="f-k">Ouverture</span>
+              <div class="seg" data-setting="openMode">
+                <button data-v="hover">Au survol</button><button data-v="click">Au clic</button>
+              </div>
+              <span class="f-k">Position</span>
+              <div class="seg" data-setting="position">
+                <button data-v="left">Gauche</button><button data-v="center">Centre</button><button data-v="right">Droite</button>
+              </div>
+              <span class="f-k">Taille</span>
+              <div class="seg" data-setting="islandScale" data-type="num">
+                <button data-v="85">S</button><button data-v="100">M</button><button data-v="115">L</button><button data-v="130">XL</button>
+              </div>
+              <span class="f-k">Écran</span>
+              <div class="seg displays" data-setting="display"></div>
+              <span class="f-k">Attache</span>
+              <div class="seg" data-setting="islandAttach">
+                <button data-v="attached">Collée en haut</button><button data-v="floating">Flottante</button>
+              </div>
+              <span class="f-k">Style</span>
+              <div class="seg" data-setting="islandStyle">
+                <button data-v="opaque">Opaque</button><button data-v="glass">Verre</button>
+              </div>
+              <div class="s-sub" data-needs="styleGlass">
+                <span class="s-off-note">Choisis le style Verre pour régler l’opacité.</span>
+                <div class="s-body">
+                  <span class="f-k">Opacité du verre</span>
+                  <div class="seg" data-setting="glassOpacity" data-type="num">
+                    <button data-v="30">30 %</button><button data-v="45">45 %</button><button data-v="60">60 %</button><button data-v="75">75 %</button><button data-v="90">90 %</button>
+                  </div>
+                </div>
+              </div>
+              <label class="sw-row"><span>Lancer avec Windows</span><input type="checkbox" data-setting="openAtLogin" /><i class="sw"></i></label>
+            </div>
+
+            <div class="s-panel" data-cat="music" data-needs="widgetMusic">
+              <span class="s-k">Musique</span>
+              <label class="sw-row s-main"><span>Activer la musique</span><input type="checkbox" data-setting="widgetMusic" /><i class="sw"></i></label>
+              <span class="f-hint s-main-hint">Éteint : l’onglet est masqué et rien ne tourne en arrière-plan.</span>
+              <div class="s-body">
+                <label class="sw-row"><span>S’ouvrir à chaque nouveau morceau</span><input type="checkbox" data-setting="peekOnTrack" /><i class="sw"></i></label>
+                <div class="s-sub" data-needs="widgetLyrics">
+                  <span class="s-k">Paroles</span>
+                  <label class="sw-row s-main"><span>Afficher les paroles</span><input type="checkbox" data-setting="widgetLyrics" /><i class="sw"></i></label>
+                  <div class="s-body">
+                    <label class="sw-row"><span>Paroles dans la barre fermée</span><input type="checkbox" data-setting="compactLyrics" /><i class="sw"></i></label>
+                    <span class="f-k">Taille</span>
+                    <div class="seg" data-setting="lyricsSize" data-type="num">
+                      <button data-v="14">S</button><button data-v="16">M</button><button data-v="19">L</button><button data-v="22">XL</button>
+                    </div>
+                    <span class="f-k">Police</span>
+                    <div class="chips" data-setting="lyricsFont">
+                      <button data-v="segoe" class="font-segoe">Segoe UI</button>
+                      <button data-v="bahnschrift" class="font-bahnschrift">Bahnschrift</button>
+                      <button data-v="georgia" class="font-georgia">Georgia</button>
+                      <button data-v="consolas" class="font-consolas">Consolas</button>
+                      <button data-v="print" class="font-print">Segoe Print</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="s-panel" data-cat="sound" data-needs="widgetSound">
+              <span class="s-k">Son</span>
+              <label class="sw-row s-main"><span>Activer le son</span><input type="checkbox" data-setting="widgetSound" /><i class="sw"></i></label>
+              <span class="f-hint s-main-hint">Éteint : l’onglet est masqué et rien ne tourne en arrière-plan.</span>
+              <div class="s-body">
+                <span class="f-hint">L’onglet Son règle le volume général et celui de chaque appli. L’indicateur de volume se règle dans HUD &amp; popups.</span>
+              </div>
+            </div>
+
+            <div class="s-panel" data-cat="pc" data-needs="widgetPc">
+              <span class="s-k">PC</span>
+              <label class="sw-row s-main"><span>Activer les infos PC</span><input type="checkbox" data-setting="widgetPc" /><i class="sw"></i></label>
+              <span class="f-hint s-main-hint">Éteint : l’onglet est masqué et rien ne tourne en arrière-plan.</span>
+              <div class="s-body">
+                <span class="f-k">Ping vers</span>
+                <div class="field">
+                  <input type="text" class="ping-host" spellcheck="false" maxlength="253" placeholder="1.1.1.1" aria-label="Serveur pour le ping" />
+                  <span class="f-hint">Serveur ou adresse IP · Entrée pour valider</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="s-panel" data-cat="time" data-needs="widgetTime">
+              <span class="s-k">Temps d’écran</span>
+              <label class="sw-row s-main"><span>Activer le temps d’écran</span><input type="checkbox" data-setting="widgetTime" /><i class="sw"></i></label>
+              <span class="f-hint s-main-hint">Éteint : l’onglet est masqué et rien ne tourne en arrière-plan.</span>
+              <div class="s-body">
+                <span class="f-k">Compté comme absent après</span>
+                <div class="seg" data-setting="idleMinutes" data-type="num">
+                  <button data-v="2">2 min</button><button data-v="5">5 min</button><button data-v="10">10 min</button><button data-v="15">15 min</button>
+                </div>
+                <span class="f-hint">Sans clavier ni souris, sauf si l’appli devant toi joue du son.</span>
+              </div>
+            </div>
+
+            <div class="s-panel" data-cat="twitch" data-needs="widgetTwitch">
+              <span class="s-k">Twitch</span>
+              <label class="sw-row s-main"><span>Activer Twitch</span><input type="checkbox" data-setting="widgetTwitch" /><i class="sw"></i></label>
+              <span class="f-hint s-main-hint">Éteint : l’onglet est masqué et rien ne tourne en arrière-plan.</span>
+              <div class="s-body">
+                <div class="tw-account">
+                  <span class="tw-state">Pas connecté</span>
+                  <button class="tw-btn">Se connecter</button>
+                </div>
+                <div class="tw-code" hidden>Sur la page twitch.tv/activate qui vient de s’ouvrir, entre le code <b></b></div>
+                <span class="f-hint tw-err"></span>
+                <label class="sw-row"><span>Bandeau des stats pendant le live</span><input type="checkbox" data-setting="twitchTicker" /><i class="sw"></i></label>
+                <span class="f-hint">Sous la barre fermée, tes stats défilent une par une tant que tu es en live.</span>
+                <span class="f-k">Client ID (optionnel)</span>
+                <div class="field">
+                  <input type="text" class="twitch-client" spellcheck="false" maxlength="50" placeholder="celui de Lagon (laisser vide)" aria-label="Client ID Twitch" />
+                  <span class="f-hint">Seulement pour utiliser ta propre appli dev.twitch.tv · Entrée pour valider</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="s-panel" data-cat="valorant" data-needs="widgetValorant">
+              <span class="s-k">Valorant</span>
+              <label class="sw-row s-main"><span>Activer Valorant</span><input type="checkbox" data-setting="widgetValorant" /><i class="sw"></i></label>
+              <span class="f-hint s-main-hint">Éteint : l’onglet est masqué et rien ne tourne en arrière-plan.</span>
+              <div class="s-body">
+                <span class="f-k">Riot ID</span>
+                <div class="field">
+                  <input type="text" class="text-in valo-id" spellcheck="false" maxlength="24" placeholder="Pseudo#TAG" aria-label="Riot ID" />
+                  <span class="f-hint">Ton pseudo en jeu avec le # · Entrée pour valider</span>
+                </div>
+                <span class="f-k">Région</span>
+                <div class="seg" data-setting="valoRegion">
+                  <button data-v="eu">EU</button><button data-v="na">NA</button><button data-v="ap">AP</button><button data-v="kr">KR</button><button data-v="br">BR</button><button data-v="latam">LATAM</button>
+                </div>
+                <span class="f-k">Plateforme</span>
+                <div class="seg" data-setting="valoPlatform">
+                  <button data-v="pc">PC</button><button data-v="console">Console</button>
+                </div>
+                <span class="f-k">Clé API HenrikDev</span>
+                <div class="vl-key-saved">
+                  <span>Clé enregistrée (chiffrée sur ce PC)</span>
+                  <button class="vl-btn vl-clear">Supprimer</button>
+                </div>
+                <div class="field vl-key-new">
+                  <input type="password" class="text-in valo-key" spellcheck="false" maxlength="128" autocomplete="off" placeholder="HDEV-…" aria-label="Clé API HenrikDev" />
+                  <span class="f-hint">Colle ta clé puis Entrée · <button class="link vl-get">Obtenir une clé</button></span>
+                </div>
+                <span class="f-hint vl-err"></span>
+                <span class="f-hint">Rang et RR mis à jour toutes les 3 min, en pause quand un jeu est en plein écran. Données : HenrikDev (non officiel, pas lié à Riot Games).</span>
+              </div>
+            </div>
+
+            <div class="s-panel" data-cat="face" data-needs="idleFace">
+              <span class="s-k">Petit visage</span>
+              <label class="sw-row s-main"><span>Activer le petit visage</span><input type="checkbox" data-setting="idleFace" /><i class="sw"></i></label>
+              <span class="f-hint s-main-hint">Éteint : l’heure s’affiche seule quand rien ne joue.</span>
+              <div class="s-body">
+                <span class="f-k">S’endort après</span>
+                <div class="seg" data-setting="faceSleepSeconds" data-type="num">
+                  <button data-v="20">20 s</button><button data-v="60">1 min</button><button data-v="120">2 min</button><button data-v="300">5 min</button>
+                </div>
+                <span class="f-hint">Il glisse au milieu et s’endort, puis revient à côté de l’heure quand tu bouges.</span>
+              </div>
+            </div>
+
+            <div class="s-panel" data-cat="hud">
+              <span class="s-k">HUD &amp; popups</span>
+              <span class="f-hint">S’affichent un instant dans la barre fermée.</span>
+              <div class="w-grid">
+                <label class="sw-row"><span>Volume</span><input type="checkbox" data-setting="volumeOsd" /><i class="sw"></i></label>
+                <label class="sw-row"><span>Luminosité</span><input type="checkbox" data-setting="hudBrightness" /><i class="sw"></i></label>
+                <label class="sw-row"><span>Verr. Maj.</span><input type="checkbox" data-setting="hudCaps" /><i class="sw"></i></label>
+                <label class="sw-row"><span>Langue de saisie</span><input type="checkbox" data-setting="hudLang" /><i class="sw"></i></label>
+                <label class="sw-row"><span>Batterie</span><input type="checkbox" data-setting="hudBattery" /><i class="sw"></i></label>
+                <label class="sw-row"><span>Wi-Fi / réseau</span><input type="checkbox" data-setting="hudWifi" /><i class="sw"></i></label>
+                <label class="sw-row"><span>Casque Bluetooth</span><input type="checkbox" data-setting="hudBluetooth" /><i class="sw"></i></label>
+              </div>
+            </div>
+
+            <div class="s-panel" data-cat="perf">
+              <span class="s-k">Performance</span>
+              <label class="sw-row"><span>Masquer et mettre en pause en plein écran</span><input type="checkbox" data-setting="hideInFullscreen" /><i class="sw"></i></label>
+              <span class="f-hint">Jeu, vidéo ou navigateur en plein écran : Lagon disparaît et tout s’arrête (seul le temps d’écran continue de compter).</span>
+              <label class="sw-row"><span>Accélération par la carte graphique</span><input type="checkbox" data-setting="gpuAcceleration" /><i class="sw"></i></label>
+              <span class="f-hint">Désactivée : environ 85 Mo de mémoire en moins et la carte graphique reste au repos, pour la même fluidité.</span>
+              <div class="restart-row" hidden>
+                <span>Redémarre Lagon pour appliquer ce changement.</span>
+                <button class="restart">Redémarrer</button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+  <script src="stub.js"></script><script src="app.js"></script>
+</body>
+</html>
