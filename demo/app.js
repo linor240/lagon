@@ -561,7 +561,9 @@ function hudFor(m) {
     case 'caps':
       return { kind: 'caps', icon: ICONS.caps(), title: m.on ? 'Verr. Maj. activé' : 'Verr. Maj. désactivé', tone: m.on ? 'warn' : '' };
     case 'lang':
-      return { kind: 'lang', icon: ICONS.keyboard(), title: `Clavier ${m.code}`, sub: m.name };
+      // "Clavier FR (US)": the language, then the keyboard layout (as Windows writes FRA (US))
+      return { kind: 'lang', icon: ICONS.keyboard(), title: `Clavier ${m.code}${m.layout ? ` (${m.layout})` : ''}`,
+        sub: m.layoutName || m.name };
     case 'battery': {
       const t = { plug: 'En charge', unplug: 'Sur batterie', low: 'Batterie faible', full: 'Batterie chargée' }[m.event] || 'Batterie';
       const tone = m.event === 'low' ? (m.pct <= 10 ? 'hot' : 'warn') : m.charging ? 'ok' : '';
