@@ -46,7 +46,7 @@ button { font: inherit; color: inherit; border: 0; background: none; cursor: poi
   position: absolute;
   top: 0;
   left: 50%;
-  transform: translateX(-50%);
+  translate: -50% 0; /* not transform: the hover scale must grow from the centre */
   width: 290px;
   height: 36px;
   background: #000;
@@ -62,8 +62,8 @@ button { font: inherit; color: inherit; border: 0; background: none; cursor: poi
     scale 0.3s var(--spring);
 }
 /* left / right corner instead of centred (keep 16px in sync with EDGE in main.js) */
-body[data-pos="left"] #island { left: 16px; transform: none; transform-origin: top left; }
-body[data-pos="right"] #island { left: auto; right: 16px; transform: none; transform-origin: top right; }
+body[data-pos="left"] #island { left: 16px; translate: none; transform-origin: top left; }
+body[data-pos="right"] #island { left: auto; right: 16px; translate: none; transform-origin: top right; }
 /* click mode: grow a little under the pointer to show it can be clicked */
 #island.click-mode.hot:not(.open) { scale: 1.06; cursor: pointer; }
 #island.idle { width: 132px; }
@@ -185,7 +185,7 @@ body[data-pos="right"] #island { left: auto; right: 16px; transform: none; trans
   position: absolute;
   top: 7px;
   left: 50%;
-  transform: translateX(-50%);
+  translate: -50% 0; /* not transform: the hover scale must grow from the centre */
   display: flex;
   gap: 4px;
   padding: 2px;
