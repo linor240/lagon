@@ -202,6 +202,7 @@ body[data-pos="right"] #island { left: auto; right: 16px; translate: none; trans
   color: var(--faint);
   transition: background 0.2s var(--ease), color 0.2s var(--ease);
 }
+.tabs svg.filled { fill: currentColor; stroke: none; width: 13px; height: 13px; } /* the Valorant "V" */
 .tabs button:hover { color: var(--dim); }
 .tabs button.on { background: rgba(255, 255, 255, 0.16); color: var(--text); }
 .tabs svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }

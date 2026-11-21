@@ -778,8 +778,10 @@ settingsPage.querySelectorAll('input[data-setting]').forEach((i) => {
 });
 // segmented controls and font chips: <div data-setting="key" [data-type="num"]><button data-v="…">
 function bindChoice(b) {
-  const group = b.parentElement;
   b.addEventListener('click', () => {
+    // looked up on click: the screen buttons are bound before they are put in their group
+    const group = b.closest('[data-setting]');
+    if (!group) return;
     const value = group.dataset.type === 'num' ? +b.dataset.v : b.dataset.v;
     window.lagon.setSetting(group.dataset.setting, value).then(applySettings);
   });
