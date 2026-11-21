@@ -44,6 +44,7 @@ window.lagon.onHover((on) => {
   hovering = on;
   island.classList.toggle('hot', on);
   if (!on) { setOpen(false); return; }
+  if (settings.focusMode) return; // focus: a thin line that never opens (a click brings the bar back)
   if (peekTimer) {
     // the pointer caught a song peek: keep it open
     clearTimeout(peekTimer);
@@ -54,6 +55,7 @@ window.lagon.onHover((on) => {
 });
 
 island.addEventListener('click', () => {
+  if (settings.focusMode) { window.lagon.setSetting('focusMode', false).then(applySettings); return; }
   if (settings.openMode !== 'click' || island.classList.contains('open')) return;
   setPage(userPage, true);
   setOpen(true);
@@ -62,10 +64,12 @@ island.addEventListener('click', () => {
 // Sizes must match style.css (#island, #island.idle, #island.idle.face-mode, --open-w / --open-h).
 let sentSizes = '';
 function sendSizes(idle) {
-  const w = !idle ? 290 : settings.idleFace ? 184 : 132;
+  const focus = !!settings.focusMode;
+  const w = focus ? 64 : !idle ? 290 : settings.idleFace ? 184 : 132;
   const gap = settings.islandAttach === 'floating' ? 8 : 0; // floating: the island starts 8px lower
   const tickerRow = island.classList.contains('ticker-on') ? 22 : 0; // live ticker under the closed island
-  const sizes = { compact: { w, h: 36 + tickerRow + gap }, open: { w: 540, h: 228 + gap } };
+  const h = focus ? 6 : 36 + tickerRow; // keep in sync with #island.focus in style.css
+  const sizes = { compact: { w, h: h + gap }, open: { w: 540, h: 228 + gap } };
   if (JSON.stringify(sizes) === sentSizes) return;
   sentSizes = JSON.stringify(sizes);
   window.lagon.setSizes(sizes);
@@ -73,7 +77,7 @@ function sendSizes(idle) {
 
 // Briefly show the music card when a new song starts.
 function peek() {
-  if (hovering || !settings.peekOnTrack) return;
+  if (hovering || !settings.peekOnTrack || settings.focusMode) return;
   setPage('music', true, false);
   setOpen(true);
   clearTimeout(peekTimer);
@@ -508,7 +512,7 @@ function renderHud(h) {
   island.classList.toggle('muted', !!h.muted);
 }
 function showHud(h, ms = 1800) {
-  if (island.classList.contains('open')) return;
+  if (island.classList.contains('open') || settings.focusMode) return;
   hudKind = h.kind;
   island.classList.add('osd');
   renderHud(h);
@@ -747,7 +751,6 @@ function applySettings(s) {
     b.classList.toggle('on', String(s[b.parentElement.dataset.setting]) === b.dataset.v);
   });
   if (document.activeElement !== pingInput) { pingInput.value = s.pingHost; pingInput.classList.remove('bad'); }
-  if (document.activeElement !== twInput) { twInput.value = s.twitchClientId || ''; twInput.classList.remove('bad'); }
   if (document.activeElement !== vlId) { vlId.value = s.valoRiotId || ''; vlId.classList.remove('bad'); }
 
   document.body.dataset.pos = s.position;
@@ -765,6 +768,9 @@ function applySettings(s) {
   });
   applyWidgets();
   island.classList.toggle('click-mode', s.openMode === 'click');
+  island.classList.toggle('focus', !!s.focusMode);
+  if (s.focusMode) { hideOsd(); if (island.classList.contains('open') && !hovering) setOpen(false); }
+  if (typeof syncTicker === 'function') syncTicker();
   const root = document.documentElement.style;
   root.setProperty('--lyric-size', s.lyricsSize + 'px');
   root.setProperty('--lyric-font', `var(--font-${s.lyricsFont})`);
@@ -1056,22 +1062,6 @@ $('.tw-btn').addEventListener('click', () => {
 });
 setInterval(() => { if (tw.stats && tw.stats.live && page === 'twitch') renderTwitch(); }, 30000); // live duration
 
-// Client ID field (typing needs the keyboard, like the ping field)
-const twInput = $('.twitch-client');
-const CLIENT_RE = /^[A-Za-z0-9]{0,50}$/;
-twInput.addEventListener('pointerdown', () => window.lagon.keyboard(true));
-twInput.addEventListener('input', () => twInput.classList.toggle('bad', !CLIENT_RE.test(twInput.value.trim())));
-twInput.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') twInput.blur();
-  if (e.key === 'Escape') { twInput.value = settings.twitchClientId || ''; twInput.blur(); }
-});
-twInput.addEventListener('blur', () => {
-  window.lagon.keyboard(false);
-  const v = twInput.value.trim();
-  if (CLIENT_RE.test(v) && v !== (settings.twitchClientId || '')) window.lagon.setSetting('twitchClientId', v).then(applySettings);
-  else { twInput.value = settings.twitchClientId || ''; twInput.classList.remove('bad'); }
-});
-
 // ---------- live ticker ----------
 // While live (and the option is on), a second row under the closed island rolls through the stats,
 // one every 3 s. The island's usual content stays as it is.
@@ -1105,7 +1095,7 @@ function rollTicker() {
 
 function syncTicker() {
   const st = tw.status || {};
-  const on = !!(settings.widgetTwitch && settings.twitchTicker && st.connected && tw.stats && tw.stats.live && !paused);
+  const on = !!(settings.widgetTwitch && settings.twitchTicker && st.connected && tw.stats && tw.stats.live && !paused && !settings.focusMode);
   if (on !== island.classList.contains('ticker-on')) {
     island.classList.toggle('ticker-on', on);
     if (on) { ticker.i = -1; rollTicker(); }

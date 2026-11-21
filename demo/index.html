@@ -188,6 +188,12 @@
           <div class="s-panels">
             <div class="s-panel on" data-cat="bar">
               <span class="s-k">Barre</span>
+              <label class="sw-row"><span>Mode focus</span><input type="checkbox" data-setting="focusMode" /><i class="sw"></i></label>
+              <span class="f-hint">La barre devient un petit trait, sans rien afficher. Clique dessus ou utilise le raccourci pour la retrouver.</span>
+              <span class="f-k">Raccourci du mode focus</span>
+              <div class="seg" data-setting="focusHotkey">
+                <button data-v="ctrl+alt+f">Ctrl+Alt+F</button><button data-v="ctrl+shift+f">Ctrl+Maj+F</button><button data-v="alt+f">Alt+F</button><button data-v="off">Aucun</button>
+              </div>
               <span class="f-k">Ouverture</span>
               <div class="seg" data-setting="openMode">
                 <button data-v="hover">Au survol</button><button data-v="click">Au clic</button>
@@ -227,6 +233,8 @@
               <label class="sw-row s-main"><span>Activer la musique</span><input type="checkbox" data-setting="widgetMusic" /><i class="sw"></i></label>
               <span class="f-hint s-main-hint">Éteint : l’onglet est masqué et rien ne tourne en arrière-plan.</span>
               <div class="s-body">
+                <label class="sw-row"><span>Priorité au lecteur de musique</span><input type="checkbox" data-setting="musicPriority" /><i class="sw"></i></label>
+                <span class="f-hint">Spotify, Deezer… passent avant le son du navigateur (YouTube, Twitch…).</span>
                 <label class="sw-row"><span>S’ouvrir à chaque nouveau morceau</span><input type="checkbox" data-setting="peekOnTrack" /><i class="sw"></i></label>
                 <div class="s-sub" data-needs="widgetLyrics">
                   <span class="s-k">Paroles</span>
@@ -298,11 +306,6 @@
                 <span class="f-hint tw-err"></span>
                 <label class="sw-row"><span>Bandeau des stats pendant le live</span><input type="checkbox" data-setting="twitchTicker" /><i class="sw"></i></label>
                 <span class="f-hint">Sous la barre fermée, tes stats défilent une par une tant que tu es en live.</span>
-                <span class="f-k">Client ID (optionnel)</span>
-                <div class="field">
-                  <input type="text" class="twitch-client" spellcheck="false" maxlength="50" placeholder="celui de Lagon (laisser vide)" aria-label="Client ID Twitch" />
-                  <span class="f-hint">Seulement pour utiliser ta propre appli dev.twitch.tv · Entrée pour valider</span>
-                </div>
               </div>
             </div>
 

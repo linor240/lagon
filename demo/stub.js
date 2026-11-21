@@ -16,6 +16,7 @@
     faceSleepSeconds: 120, lyricsSize: 16, lyricsFont: 'segoe', pingHost: '1.1.1.1', idleMinutes: 5, islandScale: 100,
     widgetTwitch: true, twitchTicker: true, twitchClientId: '', display: 'primary', openAtLogin: true,
     widgetValorant: true, valoRiotId: 'Lagon#EUW', valoRegion: 'eu', valoPlatform: 'pc',
+    musicPriority: true, focusMode: false, focusHotkey: 'ctrl+alt+f',
   };
 
   // album cover: a gradient drawn here (no real artwork)

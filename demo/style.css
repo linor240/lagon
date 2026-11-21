@@ -67,6 +67,11 @@ body[data-pos="right"] #island { left: auto; right: 16px; translate: none; trans
 /* click mode: grow a little under the pointer to show it can be clicked */
 #island.click-mode.hot:not(.open) { scale: 1.06; cursor: pointer; }
 #island.idle { width: 132px; }
+/* focus mode: a thin line, nothing inside (sizes in sync with sendSizes in app.js) */
+#island.focus:not(.open) { width: 64px !important; height: 6px !important; border-radius: 0 0 6px 6px; box-shadow: none; } /* beats the idle / face sizes */
+body[data-attach="floating"] #island.focus:not(.open) { border-radius: 6px; }
+#island.focus:not(.open) > * { opacity: 0; visibility: hidden; transition: none; }
+#island.focus.hot:not(.open) { scale: 1.15; cursor: pointer; }
 #island.osd { width: 290px; }
 #island.playing { box-shadow: 0 6px 22px rgba(0, 0, 0, 0.35), 0 0 26px -6px color-mix(in srgb, var(--accent) 55%, transparent); }
 #island.open {
