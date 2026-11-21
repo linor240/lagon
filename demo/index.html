@@ -14,6 +14,7 @@
       <div class="c-text"></div>
       <div class="eq" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
       <div class="c-clock"></div>
+      <div class="c-dc" aria-label="Discord : micro ou son coupé"></div>
       <!-- little face shown when nothing plays -->
       <!-- .face moves (left of the clock / centre when asleep); .face-in carries the hop and breathing -->
       <div class="face" aria-hidden="true">
@@ -57,6 +58,9 @@
         </button>
         <button data-page="valorant" title="Valorant">
           <svg class="filled" viewBox="0 0 24 24"><path d="M23.79 2.15a.25.25 0 0 0-.1.08c-3.38 4.23-6.77 8.46-10.15 12.7-.1.09-.02.28.12.26h7.32a.66.66 0 0 0 .55-.25l2.32-2.9a.72.72 0 0 0 .15-.49V2.32c.01-.11-.1-.21-.21-.17zM.08 2.17C0 2.2 0 2.3 0 2.37v9.23c0 .17.05.33.16.46l7.64 9.55c.12.15.3.25.5.25h7.37c.14.02.22-.17.11-.27C10.66 15.18 5.53 8.77.4 2.35c-.08-.1-.17-.27-.32-.18z"/></svg>
+        </button>
+        <button data-page="discord" title="Discord">
+          <svg class="filled" viewBox="0 0 24 24"><path d="M20.32 4.37a19.8 19.8 0 0 0-4.89-1.52.07.07 0 0 0-.08.04c-.21.38-.44.87-.6 1.25a18.27 18.27 0 0 0-5.49 0 12.64 12.64 0 0 0-.62-1.25.08.08 0 0 0-.08-.04 19.74 19.74 0 0 0-4.88 1.52.07.07 0 0 0-.03.03C.53 9.05-.32 13.58.1 18.06a.08.08 0 0 0 .03.05 19.9 19.9 0 0 0 5.99 3.03.08.08 0 0 0 .09-.03c.46-.63.87-1.3 1.22-1.99a.08.08 0 0 0-.04-.1 13.1 13.1 0 0 1-1.87-.9.08.08 0 0 1-.01-.12l.37-.3a.07.07 0 0 1 .08-.01c3.93 1.8 8.18 1.8 12.06 0a.07.07 0 0 1 .08 0l.37.3a.08.08 0 0 1 0 .13c-.6.35-1.22.65-1.88.9a.08.08 0 0 0-.04.1c.36.7.77 1.36 1.23 1.99a.08.08 0 0 0 .08.03 19.84 19.84 0 0 0 6-3.03.08.08 0 0 0 .04-.06c.5-5.18-.84-9.67-3.55-13.66a.06.06 0 0 0-.03-.03zM8.02 15.33c-1.18 0-2.16-1.08-2.16-2.42 0-1.33.96-2.42 2.16-2.42 1.21 0 2.18 1.1 2.16 2.42 0 1.34-.96 2.42-2.16 2.42zm7.97 0c-1.18 0-2.15-1.08-2.15-2.42 0-1.33.95-2.42 2.15-2.42 1.21 0 2.18 1.1 2.16 2.42 0 1.34-.95 2.42-2.16 2.42z"/></svg>
         </button>
       </nav>
 
@@ -170,6 +174,15 @@
           </div>
         </section>
 
+        <!-- discord: the voice channel you are in -->
+        <section class="page discord">
+          <div class="dc-off"><span class="dc-msg"></span></div>
+          <div class="dc-on">
+            <div class="dc-head"><span class="dc-chan"></span><span class="dc-me"></span></div>
+            <div class="dc-list"></div>
+          </div>
+        </section>
+
         <!-- settings (opened with the gear, no tab) -->
         <section class="page settings">
           <nav class="s-nav" aria-label="Catégories">
@@ -180,6 +193,7 @@
             <button data-cat="time">Temps d’écran</button>
             <button data-cat="twitch">Twitch</button>
             <button data-cat="valorant">Valorant</button>
+            <button data-cat="discord">Discord</button>
             <button data-cat="face">Petit visage</button>
             <button data-cat="hud">HUD &amp; popups</button>
             <button data-cat="perf">Performance</button>
@@ -306,6 +320,24 @@
                 <span class="f-hint tw-err"></span>
                 <label class="sw-row"><span>Bandeau des stats pendant le live</span><input type="checkbox" data-setting="twitchTicker" /><i class="sw"></i></label>
                 <span class="f-hint">Sous la barre fermée, tes stats défilent une par une tant que tu es en live.</span>
+              </div>
+            </div>
+
+            <div class="s-panel" data-cat="discord" data-needs="widgetDiscord">
+              <span class="s-k">Discord</span>
+              <label class="sw-row s-main"><span>Activer Discord</span><input type="checkbox" data-setting="widgetDiscord" /><i class="sw"></i></label>
+              <span class="f-hint s-main-hint">Éteint : l’onglet est masqué et Lagon ne se connecte pas à Discord.</span>
+              <div class="s-body">
+                <div class="tw-account">
+                  <span class="dc-state">Pas connecté</span>
+                  <button class="dc-btn">Se connecter</button>
+                </div>
+                <span class="f-hint dc-err"></span>
+                <label class="sw-row"><span>Icône mute / sourdine dans la barre fermée</span><input type="checkbox" data-setting="discordBadge" /><i class="sw"></i></label>
+                <label class="sw-row"><span>Pop-up quand quelqu’un rejoint ou quitte ton vocal</span><input type="checkbox" data-setting="discordVoicePopup" /><i class="sw"></i></label>
+                <label class="sw-row"><span>Pop-up quand on t’envoie un MP</span><input type="checkbox" data-setting="discordDmPopup" /><i class="sw"></i></label>
+                <span class="f-hint">Seulement le nom de la personne : Lagon ne lit et n’affiche jamais le message.</span>
+                <span class="f-hint">Discord doit être ouvert sur ce PC. Réservé aux testeurs de l’appli Lagon sur Discord.</span>
               </div>
             </div>
 

@@ -88,7 +88,7 @@ function peek() {
 }
 
 // ---------- pages ----------
-const PAGES = ['music', 'sound', 'pc', 'time', 'twitch', 'valorant', 'settings'];
+const PAGES = ['music', 'sound', 'pc', 'time', 'twitch', 'valorant', 'discord', 'settings'];
 let page = 'music';
 let userPage = 'music'; // the page the user picked last; peeks and settings don't change it
 const pagesEl = $('.pages');
@@ -769,6 +769,7 @@ function applySettings(s) {
   applyWidgets();
   island.classList.toggle('click-mode', s.openMode === 'click');
   island.classList.toggle('focus', !!s.focusMode);
+  if (typeof renderDiscord === 'function') renderDiscord();
   if (s.focusMode) { hideOsd(); if (island.classList.contains('open') && !hovering) setOpen(false); }
   if (typeof syncTicker === 'function') syncTicker();
   const root = document.documentElement.style;
@@ -926,7 +927,7 @@ function syncFace() {
 let faceSyncTimer = setInterval(syncFace, 250);
 
 // ---------- widgets on / off ----------
-const WIDGET_OF_PAGE = { music: 'widgetMusic', sound: 'widgetSound', pc: 'widgetPc', time: 'widgetTime', twitch: 'widgetTwitch', valorant: 'widgetValorant' };
+const WIDGET_OF_PAGE = { music: 'widgetMusic', sound: 'widgetSound', pc: 'widgetPc', time: 'widgetTime', twitch: 'widgetTwitch', valorant: 'widgetValorant', discord: 'widgetDiscord' };
 const pageEnabled = (name) => !WIDGET_OF_PAGE[name] || !!settings[WIDGET_OF_PAGE[name]];
 
 function applyWidgets() {
@@ -1220,3 +1221,99 @@ vlKey.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') { vlKey.value = ''; vlKey.blur(); }
 });
 vlKey.addEventListener('blur', () => window.lagon.keyboard(false));
+
+// ---------- Discord ----------
+// The voice channel you are in (who is there, who speaks, who is muted), your own mute / deafen as
+// an icon in the closed bar, and a pop-up with the name of who sent you a DM (never the message).
+let dc = { status: 'off', members: [] };
+const dcAvatars = new Map(); // picture address -> image, sent once by Lagon
+const DC_SVG = (p) => `<svg viewBox="0 0 24 24">${p}</svg>`;
+// solid shapes (like Discord's): thin outlines broke into pieces at 14 px and looked half hidden.
+// The bar across is drawn twice: a dark gap, then the red line, so it reads over the shape.
+const DC_CUT = '<path class="gap" d="M4 3.5l16.5 16.5"/><path class="cut" d="M4 3.5l16.5 16.5"/>';
+const DC_MIC_OFF = DC_SVG('<rect class="f" x="8.5" y="2" width="7" height="12.5" rx="3.5"/><path d="M5 11.5a7 7 0 0 0 14 0M12 18.5V22"/>' + DC_CUT);
+// deafen: no dark gap here (across an earcup it looked like a black block), just the red bar
+const DC_DEAF = DC_SVG('<path d="M4 15.5V12a8 8 0 0 1 16 0v3.5"/><path class="f" d="M3 13.5h4.2v6.5H5a2 2 0 0 1-2-2zM21 13.5h-4.2v6.5H19a2 2 0 0 0 2-2z"/><path class="cut" d="M3.5 3l17 17"/>');
+const DC_LOGO = `<svg class="filled" viewBox="0 0 24 24"><path d="${$('.tabs [data-page="discord"] path').getAttribute('d')}"/></svg>`;
+
+function dcMember(m) {
+  const row = document.createElement('div');
+  row.className = 'dc-m' + (m.speaking ? ' talk' : '');
+  const av = document.createElement('span');
+  av.className = 'dc-av';
+  const pic = dcAvatars.get(m.avatar_url);
+  if (typeof pic === 'string' && pic.startsWith('data:image/')) {
+    const img = document.createElement('img');
+    img.src = pic;
+    img.alt = '';
+    av.append(img);
+  } else {
+    av.textContent = (m.name || '?').slice(0, 1).toUpperCase();
+  }
+  const name = document.createElement('span');
+  name.className = 'dc-name';
+  name.textContent = m.name || '?';
+  const ic = document.createElement('span');
+  ic.className = 'dc-ic';
+  ic.innerHTML = (m.muted ? DC_MIC_OFF : '') + (m.deaf ? DC_DEAF : '');
+  row.append(av, name, ic);
+  return row;
+}
+
+function renderDiscordBadge() {
+  const st = dc || {};
+  const on = !!(settings.widgetDiscord && settings.discordBadge && st.status === 'connected' && (st.mute || st.deaf));
+  island.classList.toggle('dc-badge', on);
+  const badge = $('.c-dc');
+  const html = on ? (st.deaf ? DC_DEAF : DC_MIC_OFF) : '';
+  if (badge.innerHTML !== html) badge.innerHTML = html;
+}
+
+function renderDiscord() {
+  const st = dc || {};
+  const connected = st.status === 'connected';
+  const msg = {
+    noclient: 'Ouvre Discord sur ce PC : Lagon s’y connecte tout seul.',
+    signedout: 'Connecte Discord dans les paramètres (roue dentée → Discord).',
+    authorizing: 'Accepte la demande dans la fenêtre de Discord.',
+  }[st.status] || '';
+  const pageEl = $('.page.discord');
+  pageEl.classList.toggle('ready', connected && !!st.channel);
+  $('.dc-msg').textContent = connected ? 'Tu n’es dans aucun salon vocal.' : msg;
+  if (connected && st.channel) {
+    $('.dc-chan').textContent = st.channel;
+    $('.dc-me').innerHTML = (st.mute ? DC_MIC_OFF : '') + (st.deaf ? DC_DEAF : '');
+    const members = Array.isArray(st.members) ? st.members : [];
+    $('.dc-list').replaceChildren(...members.map(dcMember));
+  }
+  $('.dc-state').textContent = connected ? `Connecté : ${st.user || 'Discord'}`
+    : st.status === 'authorizing' ? 'En attente de Discord…'
+    : st.status === 'noclient' ? 'Discord n’est pas ouvert sur ce PC'
+    : 'Pas connecté';
+  const btn = $('.dc-btn');
+  btn.textContent = connected ? 'Se déconnecter' : 'Se connecter';
+  btn.disabled = !connected && st.status !== 'signedout';
+  $('.dc-err').textContent = st.error || '';
+  renderDiscordBadge();
+}
+
+$('.dc-btn').addEventListener('click', () => {
+  const action = dc && dc.status === 'connected' ? window.lagon.discordDisconnect() : window.lagon.discordConnect();
+  Promise.resolve(action).then((st) => { if (st) { dc = st; renderDiscord(); } });
+});
+window.lagon.onDiscord((st) => { if (st) { dc = st; renderDiscord(); } });
+window.lagon.onDiscordAvatar((a) => {
+  if (!a || typeof a.url !== 'string' || typeof a.data !== 'string') return;
+  dcAvatars.set(a.url, a.data);
+  if (dc && Array.isArray(dc.members) && dc.members.some((m) => m.avatar_url === a.url)) renderDiscord();
+});
+Promise.resolve(window.lagon.discordState && window.lagon.discordState()).then((st) => { if (st) dc = st; renderDiscord(); });
+window.lagon.onDiscordDm((m) => {
+  if (!m || !m.from || !settings.discordDmPopup) return;
+  // one line: the two-line layout didn't fit the bar's height
+  showHud({ kind: 'dm', icon: DC_LOGO, title: `MP de ${m.from}` }, 3500);
+});
+window.lagon.onDiscordVoice((m) => {
+  if (!m || !m.name || !settings.discordVoicePopup) return;
+  showHud({ kind: 'voice', icon: DC_LOGO, title: m.kind === 'join' ? `${m.name} a rejoint le vocal` : `${m.name} a quitté le vocal` }, 3000);
+});

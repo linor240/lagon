@@ -217,7 +217,7 @@ body[data-attach="floating"] #island.focus:not(.open) { border-radius: 6px; }
   top: 34px;
   left: 0;
   bottom: 0;
-  width: calc(var(--open-w) * 7);
+  width: calc(var(--open-w) * 8);
   display: flex;
   transform: translateX(calc(var(--page, 0) * var(--open-w) * -1));
   transition: transform 0.45s var(--spring);
@@ -742,3 +742,41 @@ body[data-style="glass"] #island.playing {
 .link { color: var(--accent); font-size: inherit; padding: 0; text-decoration: underline; }
 .vl-err { color: var(--warn); }
 .vl-err:empty { display: none; }
+
+/* ---------- Discord ---------- */
+/* mute / deafen badge in the closed bar */
+/* pinned to the right end of the closed bar; the content makes room for it */
+.c-dc { display: none; position: absolute; right: 18px; top: 0; bottom: 0; z-index: 3; align-items: center; gap: 4px; color: #ff5d6c; background: none; }
+.c-dc svg { display: block; overflow: visible; }
+#island.dc-badge:not(.osd) .compact { padding-right: 40px; }
+.c-dc svg, .dc-ic svg, .dc-me svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.c-dc svg { width: 16px; height: 16px; }
+.c-dc svg .f, .dc-ic svg .f, .dc-me svg .f { fill: currentColor; stroke: none; }
+.c-dc svg .gap, .dc-ic svg .gap, .dc-me svg .gap { stroke: #000; stroke-width: 4.6; }
+.dc-ic svg .gap { stroke: #1d1d22; }
+.c-dc svg .cut, .dc-ic svg .cut, .dc-me svg .cut { stroke: currentColor; stroke-width: 2.4; }
+#island.dc-badge:not(.osd) .c-dc { display: flex; }
+.o-icon svg.filled { fill: currentColor; stroke: none; width: 16px; height: 16px; color: #8c9cff; }
+
+.page.discord { position: relative; }
+.dc-off { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 0 40px 20px; text-align: center; font-size: 13px; color: var(--dim); }
+.dc-on { display: none; flex-direction: column; gap: 8px; padding: 4px 18px 14px; height: 100%; }
+.page.discord.ready .dc-off { display: none; }
+.page.discord.ready .dc-on { display: flex; }
+.dc-head { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; }
+.dc-chan { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dc-me { display: flex; gap: 6px; color: #ff5d6c; }
+.dc-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; overflow-y: auto; align-content: start; flex: 1; min-height: 0; }
+.dc-list::-webkit-scrollbar { width: 3px; }
+.dc-list::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.18); border-radius: 2px; }
+.dc-m { display: flex; align-items: center; gap: 8px; padding: 5px 8px; border-radius: 10px; background: rgba(255, 255, 255, 0.06); min-width: 0; }
+.dc-av { flex: none; width: 24px; height: 24px; border-radius: 50%; overflow: hidden; display: grid; place-items: center; background: #5865f2; font-size: 11px; font-weight: 700; box-shadow: 0 0 0 2px transparent; transition: box-shadow 0.15s; }
+.dc-av img { width: 100%; height: 100%; object-fit: cover; }
+.dc-m.talk .dc-av { box-shadow: 0 0 0 2px #3ddc97; }
+.dc-name { flex: 1; min-width: 0; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dc-ic { display: flex; gap: 3px; color: #ff5d6c; }
+.dc-btn { height: 26px; padding: 0 12px; border-radius: 8px; background: #5865f2; color: #fff; font-size: 12px; font-weight: 600; }
+.dc-btn:hover { filter: brightness(1.12); }
+.dc-btn:disabled { opacity: 0.45; cursor: default; filter: none; }
+.dc-err { color: var(--warn); }
+.dc-err:empty { display: none; }
