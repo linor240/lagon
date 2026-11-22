@@ -518,18 +518,38 @@ function renderHud(h) {
   osd.fill.style.width = (h.bar == null ? 0 : h.bar * 100) + '%';
   osd.pct.textContent = h.value == null ? '' : h.value;
   island.classList.toggle('muted', !!h.muted);
-  // The bar keeps the width it had before the pop-up (no jump); the text is centred in it, and
-  // only a text too long for it makes the bar grow a little (in steps of 20 px, max 360).
+  // The bar keeps the width it had before the pop-up (no jump); the text is centred in it. A text
+  // too long for it makes the bar wider (20 px steps, up to what the window can show), and if even
+  // that isn't enough the text goes on several lines (the bar gets taller): it is never cut.
   let need = 290; // bar pop-ups (volume, brightness) as before
+  let height = 0; // 0 = the usual 36 px row
+  const maxW = Math.floor(Math.min(520, 588 / ((Number(settings.islandScale) || 100) / 100)) / 20) * 20;
   if (h.bar == null) {
     const w = (el) => { const r = document.createRange(); r.selectNodeContents(el); return r.getBoundingClientRect().width; };
     const text = Math.max(w(osd.title), osd.sub.textContent ? w(osd.sub) : 0);
     const pct = osd.pct.textContent ? w(osd.pct) + 10 : 0;
-    need = 8 + 6 + 20 + 10 + text + pct + 22;
+    const chrome = 8 + 6 + 20 + 10 + pct + 22; // paddings, icon, gaps, value
+    need = chrome + text;
+    if (need > maxW) {
+      osdMeasure.style.width = (maxW - chrome) + 'px';
+      osdMeasure.firstChild.textContent = osd.title.textContent;
+      osdMeasure.lastChild.textContent = osd.sub.textContent;
+      height = Math.ceil(osdMeasure.offsetHeight) + 14;
+      if (height <= 36) height = 0;
+    }
   }
-  const width = Math.min(360, Math.max(osdBase, Math.ceil(need / 20) * 20));
+  const width = Math.min(maxW, Math.max(osdBase, Math.ceil(need / 20) * 20));
   island.style.setProperty('--osd-w', width + 'px');
+  island.classList.toggle('osd-wrap', height > 0);
+  if (height) island.style.setProperty('--osd-h', height + 'px');
 }
+// hidden copy of the pop-up text, to know how tall it is once it wraps
+const osdMeasure = document.createElement('div');
+osdMeasure.className = 'o-measure';
+osdMeasure.append(document.createElement('span'), document.createElement('span'));
+osdMeasure.firstChild.className = 'o-title';
+osdMeasure.lastChild.className = 'o-sub';
+document.body.append(osdMeasure);
 let osdBase = 290; // the closed bar's width when the pop-up started
 let calmTimer = null;
 function showHud(h, ms = 1800) {
@@ -540,13 +560,16 @@ function showHud(h, ms = 1800) {
   island.classList.add('calm'); // soft width changes, no spring bounce, while a pop-up is shown
   island.classList.add('osd');
   renderHud(h);
+  // long texts stay a little longer, so they can be read to the end
+  const len = h.bar == null ? (h.title || '').length + (h.sub || '').length : 0;
+  ms = Math.min(8000, ms + Math.max(0, len - 40) * 50);
   clearTimeout(osdTimer);
   osdTimer = setTimeout(hideOsd, ms);
 }
 function hideOsd() {
   clearTimeout(osdTimer);
   hudKind = null;
-  island.classList.remove('osd', 'osd-text');
+  island.classList.remove('osd', 'osd-text', 'osd-wrap');
   clearTimeout(calmTimer);
   calmTimer = setTimeout(() => island.classList.remove('calm'), 500); // back to the usual size softly too
 }

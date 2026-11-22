@@ -865,3 +865,13 @@ body[data-attach="floating"] .c-stats { top: var(--float-gap); }
 .hk-btn.taken { box-shadow: inset 0 0 0 1px var(--warn); color: var(--warn); }
 .hk-err { color: var(--warn); }
 .hk-err:empty { display: none; }
+
+/* ---------- long pop-up texts: never cut ---------- */
+/* the bar first gets wider (renderHud); if that isn't enough the text wraps and the bar gets taller */
+#island.osd-wrap:not(.open) { height: var(--osd-h, 36px); }
+#island.osd-wrap .compact { height: var(--osd-h, 36px); }
+#island.osd-wrap .ticker { display: none !important; }
+#island.osd-wrap .o-title, #island.osd-wrap .o-sub,
+.o-measure .o-title, .o-measure .o-sub { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; text-align: center; }
+.o-measure { position: absolute; left: -9999px; top: 0; visibility: hidden; pointer-events: none; display: flex; flex-direction: column; line-height: 1.2; }
+.o-measure .o-sub:empty { display: none; }
