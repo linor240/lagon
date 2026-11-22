@@ -8,6 +8,8 @@
 </head>
 <body>
   <div id="island" class="idle">
+    <!-- colour glows (album / Windows colours); they drift slowly with the "halos" option -->
+    <div class="halo" aria-hidden="true"><i class="h1"></i><i class="h2"></i></div>
     <!-- compact pill -->
     <div class="compact">
       <img class="c-art" alt="" />
@@ -21,6 +23,8 @@
         <div class="face-in">
           <i class="eye l"></i><i class="eye r"></i>
           <i class="cheek l"></i><i class="cheek r"></i>
+          <!-- only drawn by some styles (data-look): cat ears, robot antenna, mouth -->
+          <i class="ear l"></i><i class="ear r"></i><i class="ant"></i><i class="mouth"></i>
           <span class="zzz"><b>z</b><b>z</b><b>z</b></span>
         </div>
       </div>
@@ -220,6 +224,7 @@
         <section class="page settings">
           <nav class="s-nav" aria-label="Catégories">
             <button data-cat="bar" class="on">Barre</button>
+            <button data-cat="look">Apparence</button>
             <button data-cat="music">Musique</button>
             <button data-cat="sound">Son</button>
             <button data-cat="pc">PC</button>
@@ -262,6 +267,24 @@
               <div class="seg" data-setting="islandAttach">
                 <button data-v="attached">Collée en haut</button><button data-v="floating">Flottante</button>
               </div>
+              <span class="f-k">Toujours afficher dans la barre fermée</span>
+              <div class="chips bar-stats">
+                <button data-k="barCpu">CPU</button><button data-k="barGpu">GPU</button><button data-k="barTemp">Temp. GPU</button><button data-k="barPing">Ping</button><button data-k="barFollowers">Followers Twitch</button>
+              </div>
+              <label class="sw-row"><span>Lancer avec Windows</span><input type="checkbox" data-setting="openAtLogin" /><i class="sw"></i></label>
+            </div>
+
+            <div class="s-panel" data-cat="look">
+              <span class="s-k">Apparence</span>
+              <span class="f-k">Thème</span>
+              <div class="seg" data-setting="theme">
+                <button data-v="dark">Sombre</button><button data-v="light">Clair</button><button data-v="auto">Comme Windows</button>
+              </div>
+              <span class="f-k">Couleur</span>
+              <div class="seg" data-setting="accentColor">
+                <button data-v="cover">Celle de la musique</button><button data-v="windows">Celle de Windows</button>
+              </div>
+              <span class="f-hint">« Comme Windows » suit le mode clair ou sombre choisi dans Paramètres › Personnalisation › Couleurs, et change tout seul avec lui.</span>
               <span class="f-k">Style</span>
               <div class="seg" data-setting="islandStyle">
                 <button data-v="opaque">Opaque</button><button data-v="glass">Verre</button>
@@ -275,11 +298,10 @@
                   </div>
                 </div>
               </div>
-              <span class="f-k">Toujours afficher dans la barre fermée</span>
-              <div class="chips bar-stats">
-                <button data-k="barCpu">CPU</button><button data-k="barGpu">GPU</button><button data-k="barTemp">Temp. GPU</button><button data-k="barPing">Ping</button><button data-k="barFollowers">Followers Twitch</button>
-              </div>
-              <label class="sw-row"><span>Lancer avec Windows</span><input type="checkbox" data-setting="openAtLogin" /><i class="sw"></i></label>
+              <label class="sw-row"><span>Halos de couleur animés</span><input type="checkbox" data-setting="halos" /><i class="sw"></i></label>
+              <span class="f-hint">Les lueurs de couleur bougent lentement quand la barre est ouverte ou qu’une musique joue.</span>
+              <label class="sw-row"><span>Protection des écrans OLED</span><input type="checkbox" data-setting="oledShift" /><i class="sw"></i></label>
+              <span class="f-hint">Le contenu de la barre fermée se décale d’un ou deux pixels toutes les 90 s, sans que tu le voies, pour ne pas marquer l’écran.</span>
             </div>
 
             <div class="s-panel" data-cat="music" data-needs="widgetMusic">
@@ -443,6 +465,13 @@
               <label class="sw-row s-main"><span>Activer le petit visage</span><input type="checkbox" data-setting="idleFace" /><i class="sw"></i></label>
               <span class="f-hint s-main-hint">Éteint : l’heure s’affiche seule quand rien ne joue.</span>
               <div class="s-body">
+                <span class="f-k">Style</span>
+                <div class="face-pick" data-setting="faceStyle">
+                  <button data-v="classic"><span class="mini-face" data-look="classic"><span class="face-in"><i class="eye l"></i><i class="eye r"></i><i class="cheek l"></i><i class="cheek r"></i><i class="ear l"></i><i class="ear r"></i><i class="ant"></i><i class="mouth"></i></span></span>Classique</button>
+                  <button data-v="cat"><span class="mini-face" data-look="cat"><span class="face-in"><i class="eye l"></i><i class="eye r"></i><i class="cheek l"></i><i class="cheek r"></i><i class="ear l"></i><i class="ear r"></i><i class="ant"></i><i class="mouth"></i></span></span>Chat</button>
+                  <button data-v="robot"><span class="mini-face" data-look="robot"><span class="face-in"><i class="eye l"></i><i class="eye r"></i><i class="cheek l"></i><i class="cheek r"></i><i class="ear l"></i><i class="ear r"></i><i class="ant"></i><i class="mouth"></i></span></span>Robot</button>
+                  <button data-v="cute"><span class="mini-face" data-look="cute"><span class="face-in"><i class="eye l"></i><i class="eye r"></i><i class="cheek l"></i><i class="cheek r"></i><i class="ear l"></i><i class="ear r"></i><i class="ant"></i><i class="mouth"></i></span></span>Mignon</button>
+                </div>
                 <span class="f-k">S’endort après</span>
                 <div class="seg" data-setting="faceSleepSeconds" data-type="num">
                   <button data-v="20">20 s</button><button data-v="60">1 min</button><button data-v="120">2 min</button><button data-v="300">5 min</button>

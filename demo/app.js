@@ -18,11 +18,14 @@ let peekTimer = null;
 let settingsLoaded = false; // the saved settings arrived (until then the page uses its defaults)
 let barXw = 0; // extra width of the closed island for the pinned stats (see renderBarStats)
 let paused = false; // true while hidden for a fullscreen app
+let winTheme = null; // Windows' { light, accent: "#rrggbb" } (null in the browser demo)
+let coverPal = null; // hues of the current artwork (see pickAccent), null = greyscale / none yet
 // replaced by the saved settings as soon as the main process answers
 let settings = {
   openMode: 'hover', position: 'center', peekOnTrack: true, compactLyrics: true, volumeOsd: true, idleFace: true, faceSleepSeconds: 120,
   widgetMusic: true, widgetLyrics: true, widgetSound: true, widgetPc: true, widgetTime: true,
   lyricsSize: 16, lyricsFont: 'segoe', pingHost: '1.1.1.1', idleMinutes: 5, openAtLogin: false,
+  theme: 'dark', accentColor: 'cover', halos: false, oledShift: false, faceStyle: 'classic',
 };
 
 const trackKey = (s) => (s && s.active ? `${s.artist}|${s.title}` : null);
@@ -326,7 +329,9 @@ el.bar.addEventListener('click', (e) => {
 
 // ---------- colours from the artwork ----------
 // Two dominant vivid colours: --c1 / --c2 drive the background gradient,
-// --accent (a lighter c1) drives the equalizer, progress bar and glow.
+// --accent (a lighter c1, darker in the light theme) drives the equalizer, progress bar and glow.
+// pickAccent finds the hues (coverPal), applyColors turns them into colours for the current theme,
+// or uses Windows' accent colour instead (accentColor: "windows").
 function pickAccent(src) {
   const img = new Image();
   img.onload = () => {
@@ -348,28 +353,57 @@ function pickAccent(src) {
       bin.w += w; bin.r += d[i] * w; bin.g += d[i + 1] * w; bin.b += d[i + 2] * w;
     }
     const ranked = bins.filter((b) => b.w > 0).sort((a, b) => b.w - a.w);
-    const root = document.documentElement.style;
 
     if (!ranked.length || satSum / count < 0.08) {        // greyscale cover
-      root.setProperty('--c1', 'hsl(230 8% 42%)');
-      root.setProperty('--c2', 'hsl(230 6% 26%)');
-      root.setProperty('--accent', '#e8e8ed');
-      return;
+      coverPal = null;
+    } else {
+      const avg = (b) => rgbToHsl(b.r / b.w, b.g / b.w, b.b / b.w);
+      const top = ranked[0];
+      const far = (b) => Math.min(Math.abs(b.i - top.i), BINS - Math.abs(b.i - top.i)) >= 2;
+      const second = ranked.find((b) => b !== top && far(b) && b.w > top.w * 0.12);
+      const [h1, s1] = avg(top);
+      const [h2, s2] = second ? avg(second) : [(h1 + 0.08) % 1, s1];
+      coverPal = { h1, s1, h2, s2, second: !!second };
     }
-    const avg = (b) => rgbToHsl(b.r / b.w, b.g / b.w, b.b / b.w);
-    const top = ranked[0];
-    const far = (b) => Math.min(Math.abs(b.i - top.i), BINS - Math.abs(b.i - top.i)) >= 2;
-    const second = ranked.find((b) => b !== top && far(b) && b.w > top.w * 0.12);
-
-    const [h1, s1] = avg(top);
-    const [h2, s2] = second ? avg(second) : [(h1 + 0.08) % 1, s1];
-    const hsl = (h, s, l) => `hsl(${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%)`;
-    root.setProperty('--c1', hsl(h1, Math.max(0.55, s1), 0.5));
-    root.setProperty('--c2', hsl(h2, Math.max(0.5, s2), second ? 0.45 : 0.32));
-    root.setProperty('--accent', hsl(h1, Math.max(0.5, s1), 0.7));
+    applyColors();
   };
   img.src = src;
 }
+
+// Windows' accent colour as a palette (null if it is a grey)
+function hexPal(hex) {
+  if (!/^#[0-9a-f]{6}$/i.test(hex || '')) return null;
+  const n = parseInt(hex.slice(1), 16);
+  const [h, s] = rgbToHsl((n >> 16) & 255, (n >> 8) & 255, n & 255);
+  return s < 0.08 ? null : { h1: h, s1: s, h2: (h + 0.08) % 1, s2: s, second: false };
+}
+
+function applyColors() {
+  const light = document.body.dataset.theme === 'light';
+  // Windows' colour unknown (never chosen) or grey: the music's colours instead
+  const p = (settings.accentColor === 'windows' && winTheme && hexPal(winTheme.accent)) || coverPal;
+  const root = document.documentElement.style;
+  if (!p) {
+    root.setProperty('--c1', light ? 'hsl(230 8% 72%)' : 'hsl(230 8% 42%)');
+    root.setProperty('--c2', light ? 'hsl(230 6% 82%)' : 'hsl(230 6% 26%)');
+    root.setProperty('--accent', light ? '#3a3a42' : '#e8e8ed');
+    return;
+  }
+  const hsl = (h, s, l) => `hsl(${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%)`;
+  root.setProperty('--c1', hsl(p.h1, Math.max(0.55, p.s1), light ? 0.62 : 0.5));
+  root.setProperty('--c2', hsl(p.h2, Math.max(0.5, p.s2), p.second ? (light ? 0.64 : 0.45) : (light ? 0.74 : 0.32)));
+  root.setProperty('--accent', hsl(p.h1, Math.max(0.5, p.s1), light ? 0.42 : 0.7));
+}
+
+// light / dark: the setting, or Windows' mode for "auto"
+function applyTheme() {
+  const t = settings.theme === 'auto' ? (winTheme && winTheme.light ? 'light' : 'dark') : settings.theme === 'light' ? 'light' : 'dark';
+  document.body.dataset.theme = t;
+  applyColors();
+}
+const gotWindowsTheme = (t) => { winTheme = t && typeof t === 'object' ? t : null; applyTheme(); };
+if (window.lagon.getWindowsTheme) window.lagon.getWindowsTheme().then(gotWindowsTheme).catch(() => {});
+if (window.lagon.onWindowsTheme) window.lagon.onWindowsTheme(gotWindowsTheme);
 
 function rgbToHsl(r, g, b) {
   r /= 255; g /= 255; b /= 255;
@@ -526,7 +560,15 @@ function renderHud(h) {
   const maxW = Math.floor(Math.min(520, 588 / ((Number(settings.islandScale) || 100) / 100)) / 20) * 20;
   if (h.bar == null) {
     const w = (el) => { const r = document.createRange(); r.selectNodeContents(el); return r.getBoundingClientRect().width; };
-    const text = Math.max(w(osd.title), osd.sub.textContent ? w(osd.sub) : 0);
+    // Measured on the hidden copy, on one line: the shown text may already end with "…" (the bar
+    // is still at its old width), and a cut text measures only what is visible (Discord names were
+    // cut that way while short texts like the keyboard language were not).
+    osdMeasure.style.width = '';
+    osdMeasure.classList.add('one-line');
+    osdMeasure.firstChild.textContent = osd.title.textContent;
+    osdMeasure.lastChild.textContent = osd.sub.textContent;
+    const text = Math.ceil(osdMeasure.getBoundingClientRect().width) + 1;
+    osdMeasure.classList.remove('one-line');
     const pct = osd.pct.textContent ? w(osd.pct) + 10 : 0;
     const chrome = 8 + 6 + 20 + 10 + pct + 22; // paddings, icon, gaps, value
     need = chrome + text;
@@ -593,11 +635,11 @@ const ICONS = {
   keyboard: () => svg('<rect x="2.5" y="6" width="19" height="12" rx="2.5"/><path d="M6.5 10h.01M10 10h.01M14 10h.01M17.5 10h.01M8 14h8"/>'),
   battery: (pct, charging) => svg(`<rect x="2.5" y="7" width="17" height="10" rx="2.5"/><path d="M21.5 10.5v3"/>`
     + `<rect x="4.5" y="9" width="${Math.max(1, 13 * pct / 100).toFixed(1)}" height="6" rx="1" fill="currentColor" stroke="none"/>`
-    + (charging ? '<path d="M11.5 8.5 9.5 12h3l-2 3.5" stroke="#000" stroke-width="1.6"/>' : '')),
+    + (charging ? '<path d="M11.5 8.5 9.5 12h3l-2 3.5" class="carve" stroke-width="1.6"/>' : '')),
   wifi: (bars) => {
-    const on = (n) => (bars < 0 || bars >= n ? 'currentColor' : 'rgba(255,255,255,0.25)');
-    return svg(`<path d="M2.5 9a14 14 0 0 1 19 0" stroke="${on(4)}"/><path d="M5.5 12.5a9.5 9.5 0 0 1 13 0" stroke="${on(3)}"/>`
-      + `<path d="M8.5 16a5 5 0 0 1 7 0" stroke="${on(2)}"/><circle cx="12" cy="19.2" r="1" fill="currentColor" stroke="none"/>`);
+    const on = (n) => (bars < 0 || bars >= n ? '' : ' stroke-opacity="0.25"');
+    return svg(`<path d="M2.5 9a14 14 0 0 1 19 0"${on(4)}/><path d="M5.5 12.5a9.5 9.5 0 0 1 13 0"${on(3)}/>`
+      + `<path d="M8.5 16a5 5 0 0 1 7 0"${on(2)}/><circle cx="12" cy="19.2" r="1" fill="currentColor" stroke="none"/>`);
   },
   ethernet: () => svg('<rect x="8" y="3" width="8" height="6" rx="1"/><path d="M12 9v4M5 13h14M5 13v4M12 13v4M19 13v4"/><rect x="3" y="17" width="4" height="4" rx="1"/><rect x="10" y="17" width="4" height="4" rx="1"/><rect x="17" y="17" width="4" height="4" rx="1"/>'),
   offline: () => svg('<path d="M2.5 9a14 14 0 0 1 19 0M8.5 16a5 5 0 0 1 7 0M3 3l18 18"/>'),
@@ -813,6 +855,9 @@ function applySettings(s) {
   document.body.dataset.attach = s.islandAttach;
   document.body.dataset.style = s.islandStyle;
   document.documentElement.style.setProperty('--glass-a', (s.glassOpacity / 100).toFixed(2));
+  applyTheme();
+  $('.face').dataset.look = s.faceStyle || 'classic';
+  if (typeof syncOled === 'function') syncOled();
   // options of a widget that is off are greyed out (its category name too)
   const needs = { ...s, styleGlass: s.islandStyle === 'glass' };
   settingsPage.querySelectorAll('[data-needs]').forEach((el) => el.classList.toggle('off', !needs[el.dataset.needs]));
@@ -1009,12 +1054,18 @@ const eqBars = [...document.querySelectorAll('.eq i')];
 const zs = [...document.querySelectorAll('.zzz b')];
 const faceIn = $('.face-in');
 const EQ_WAVES = [[3.5, 0], [4.5, 1.3], [3, 2.1], [4, 0.6]]; // speed, phase per bar
+const halos = [...document.querySelectorAll('.halo i')];
 let animTimer = null;
 let animWasOn = { eq: true, sleep: true }; // forces one reset on start
+let halosMoved = false;
 
 const closedView = () => !island.classList.contains('open') && !island.classList.contains('osd');
 const eqWanted = () => closedView() && island.classList.contains('playing') && !island.classList.contains('idle');
 const sleepWanted = () => closedView() && face.classList.contains('sleep') && faceVisible();
+// colour glows drift while they are shown: open card with music, or closed bar while music plays
+const haloWanted = () => !!settings.halos && (island.classList.contains('open')
+  ? !island.classList.contains('no-media')
+  : island.classList.contains('playing') && !island.classList.contains('idle'));
 
 function animFrame() {
   const t = performance.now() / 1000;
@@ -1039,14 +1090,53 @@ function animFrame() {
     faceIn.style.transform = '';
     zs.forEach((z) => { z.style.opacity = ''; z.style.transform = ''; });
   }
+  if (haloWanted()) {
+    // slow Lissajous drift (periods 23-37 s), in % of the layer (1.5x the island)
+    const w = (period, phase = 0) => Math.sin((t / period) * 2 * Math.PI + phase);
+    halos[0].style.transform = `translate(${(7 * w(23)).toFixed(2)}%, ${(8 * w(31, 1)).toFixed(2)}%) scale(${(1 + 0.06 * w(19, 2)).toFixed(3)})`;
+    halos[1].style.transform = `translate(${(-7 * w(29, 2)).toFixed(2)}%, ${(-8 * w(37)).toFixed(2)}%) scale(${(1 + 0.06 * w(27)).toFixed(3)})`;
+    halosMoved = true;
+  } else if (halosMoved && !settings.halos) {
+    // option turned off: back to the fixed place (when only hidden, they stay where they are)
+    halos.forEach((h) => { h.style.transform = ''; });
+    halosMoved = false;
+  }
   animWasOn = { eq, sleep };
 }
 
 function syncAnim() {
-  const need = !paused && (eqWanted() || sleepWanted());
+  const need = !paused && (eqWanted() || sleepWanted() || haloWanted());
   if (need && !animTimer) animTimer = setInterval(animFrame, 66);
   else if (!need && animTimer) { clearInterval(animTimer); animTimer = null; }
   if (!need) animFrame(); // settle the bars / face once
+}
+
+// ---------- OLED care ----------
+// oledShift: the closed bar's content (clock, face, text, pinned stats) moves by 1 px every 90 s
+// along a 5 x 3 px snake and back, so no white pixel stays lit at the same place for hours.
+const OLED_PATH = (() => {
+  const snake = [];
+  [-1, 0, 1].forEach((y, i) => { const xs = [-2, -1, 0, 1, 2]; (i % 2 ? xs.reverse() : xs).forEach((x) => snake.push([x, y])); });
+  return snake.concat(snake.slice(1, -1).reverse());
+})();
+let oledTimer = null;
+let oledStep = 7; // [0, 0]
+function oledTick() {
+  if (paused) return;
+  oledStep = (oledStep + 1) % OLED_PATH.length;
+  const [x, y] = OLED_PATH[oledStep];
+  island.style.setProperty('--ox', x + 'px');
+  island.style.setProperty('--oy', y + 'px');
+}
+function syncOled() {
+  if (settings.oledShift && !oledTimer) oledTimer = setInterval(oledTick, 90000);
+  else if (!settings.oledShift && oledTimer) {
+    clearInterval(oledTimer);
+    oledTimer = null;
+    oledStep = 7;
+    island.style.removeProperty('--ox');
+    island.style.removeProperty('--oy');
+  }
 }
 
 // ---------- pause (fullscreen app in front, island hidden) ----------

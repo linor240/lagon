@@ -11,6 +11,7 @@
   const settings = {
     openMode: 'hover', position: 'center', peekOnTrack: false, compactLyrics: true, volumeOsd: true,
     widgetMusic: true, widgetLyrics: true, widgetSound: true, widgetPc: true, widgetTime: true, idleFace: true,
+    theme: 'dark', accentColor: 'cover', halos: true, oledShift: false, faceStyle: 'classic',
     islandAttach: 'attached', islandStyle: 'opaque', glassOpacity: 60, hudBrightness: true, hudCaps: true, hudLang: true,
     hudBattery: true, hudWifi: true, hudBluetooth: true, hideInFullscreen: true, gpuAcceleration: false, gpuActive: false,
     faceSleepSeconds: 120, lyricsSize: 16, lyricsFont: 'segoe', pingHost: '1.1.1.1', idleMinutes: 5, islandScale: 100,
@@ -127,6 +128,7 @@
     onSettings: on('settings:changed'), onPaused: on('island:paused'), onTwitchStatus: on('twitch:status'),
     onTwitchStats: on('twitch:stats'), onValorant: on('valorant:state'),
     getSettings: () => R({ ...settings }),
+    getWindowsTheme: () => R({ light: false, accent: '#0078d4' }),
     setSetting: (k, v) => { settings[k] = v; fire('settings:changed', { ...settings }); return R({ ...settings }); },
     getUsage: () => R(usage()), getDisplays: () => R([{ id: 'primary', label: 'Écran 1', size: '2560×1440', primary: true }]),
     twitchStatus: () => R(twitch.status), valorantState: () => R(valorant), sys: (c) => { sys(c); return R(); },
