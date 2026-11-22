@@ -202,9 +202,13 @@
 
         <!-- discord: the voice channel you are in -->
         <section class="page discord">
+          <div class="dc-ctl">
+            <button class="dc-tg dc-tg-mic" aria-label="Micro Discord"></button>
+            <button class="dc-tg dc-tg-deaf" aria-label="Son Discord"></button>
+          </div>
           <div class="dc-off"><span class="dc-msg"></span></div>
           <div class="dc-on">
-            <div class="dc-head"><span class="dc-chan"></span><span class="dc-me"></span></div>
+            <div class="dc-head"><span class="dc-chan"></span></div>
             <div class="dc-list"></div>
           </div>
         </section>
@@ -388,6 +392,19 @@
                 <label class="sw-row"><span>Pop-up quand quelqu’un rejoint ou quitte ton vocal</span><input type="checkbox" data-setting="discordVoicePopup" /><i class="sw"></i></label>
                 <label class="sw-row"><span>Pop-up quand on t’envoie un MP</span><input type="checkbox" data-setting="discordDmPopup" /><i class="sw"></i></label>
                 <span class="f-hint">Seulement le nom de la personne : Lagon ne lit et n’affiche jamais le message.</span>
+                <div class="dc-ctl-row" hidden>
+                  <span>Autorise Lagon à couper ton micro et ton son</span>
+                  <button class="vl-btn dc-reauth">Autoriser</button>
+                </div>
+                <span class="f-k">Raccourci : couper / réactiver le micro</span>
+                <div class="seg" data-setting="discordMuteHotkey">
+                  <button data-v="ctrl+alt+m">Ctrl+Alt+M</button><button data-v="ctrl+shift+m">Ctrl+Maj+M</button><button data-v="alt+m">Alt+M</button><button data-v="off">Aucun</button>
+                </div>
+                <span class="f-k">Raccourci : sourdine</span>
+                <div class="seg" data-setting="discordDeafHotkey">
+                  <button data-v="ctrl+alt+d">Ctrl+Alt+D</button><button data-v="ctrl+shift+d">Ctrl+Maj+D</button><button data-v="alt+d">Alt+D</button><button data-v="off">Aucun</button>
+                </div>
+                <span class="f-hint">Aussi : les boutons en haut de l’onglet Discord, ou un clic sur l’icône rouge de la barre fermée (ouverture « Au clic ») pour réactiver.</span>
                 <span class="f-hint">Discord doit être ouvert sur ce PC. Réservé aux testeurs de l’appli Lagon sur Discord.</span>
               </div>
             </div>

@@ -1247,11 +1247,13 @@ vlKey.addEventListener('blur', () => window.lagon.keyboard(false));
 // an icon in the closed bar, and a pop-up with the name of who sent you a DM (never the message).
 let dc = { status: 'off', members: [] };
 const dcAvatars = new Map(); // picture address -> image, sent once by Lagon
-const DC_SVG = (p) => `<svg viewBox="0 0 24 24">${p}</svg>`;
+const DC_SVG = (p) => `<svg class="dcv" viewBox="0 0 24 24">${p}</svg>`;
 // solid shapes (like Discord's): thin outlines broke into pieces at 14 px and looked half hidden.
 // The bar across is drawn twice: a dark gap, then the red line, so it reads over the shape.
 const DC_CUT = '<path class="gap" d="M4 3.5l16.5 16.5"/><path class="cut" d="M4 3.5l16.5 16.5"/>';
 const DC_MIC_OFF = DC_SVG('<rect class="f" x="8.5" y="2" width="7" height="12.5" rx="3.5"/><path d="M5 11.5a7 7 0 0 0 14 0M12 18.5V22"/>' + DC_CUT);
+const DC_MIC = DC_SVG('<rect class="f" x="8.5" y="2" width="7" height="12.5" rx="3.5"/><path d="M5 11.5a7 7 0 0 0 14 0M12 18.5V22"/>');
+const DC_HEAD = DC_SVG('<path d="M4 15.5V12a8 8 0 0 1 16 0v3.5"/><path class="f" d="M3 13.5h4.2v6.5H5a2 2 0 0 1-2-2zM21 13.5h-4.2v6.5H19a2 2 0 0 0 2-2z"/>');
 // deafen: no dark gap here (across an earcup it looked like a black block), just the red bar
 const DC_DEAF = DC_SVG('<path d="M4 15.5V12a8 8 0 0 1 16 0v3.5"/><path class="f" d="M3 13.5h4.2v6.5H5a2 2 0 0 1-2-2zM21 13.5h-4.2v6.5H19a2 2 0 0 0 2-2z"/><path class="cut" d="M3.5 3l17 17"/>');
 const DC_LOGO = `<svg class="filled" viewBox="0 0 24 24"><path d="${$('.tabs [data-page="discord"] path').getAttribute('d')}"/></svg>`;
@@ -1306,7 +1308,6 @@ function renderDiscord() {
   $('.dc-msg').textContent = connected ? 'Tu n’es dans aucun salon vocal.' : msg;
   if (connected && st.channel) {
     $('.dc-chan').textContent = st.channel;
-    $('.dc-me').innerHTML = (st.mute ? DC_MIC_OFF : '') + (st.deaf ? DC_DEAF : '');
     const members = Array.isArray(st.members) ? st.members : [];
     $('.dc-list').replaceChildren(...members.map(dcMember));
   }
@@ -1318,9 +1319,38 @@ function renderDiscord() {
   btn.textContent = connected ? 'Se déconnecter' : 'Se connecter';
   btn.disabled = !connected && st.status !== 'signedout';
   $('.dc-err').textContent = st.error || '';
+  // mic / sound buttons: red while cut; greyed if Discord hasn't allowed Lagon to change them
+  $('.page.discord').classList.toggle('online', connected);
+  const can = connected && !!st.control;
+  const mic = $('.dc-tg-mic'), deaf = $('.dc-tg-deaf');
+  const micHtml = st.mute || st.deaf ? DC_MIC_OFF : DC_MIC, deafHtml = st.deaf ? DC_DEAF : DC_HEAD;
+  if (mic.innerHTML !== micHtml) mic.innerHTML = micHtml;
+  if (deaf.innerHTML !== deafHtml) deaf.innerHTML = deafHtml;
+  mic.classList.toggle('cut', !!(st.mute || st.deaf));
+  deaf.classList.toggle('cut', !!st.deaf);
+  mic.disabled = deaf.disabled = !can;
+  const why = connected && !st.control ? ' (autorise le contrôle dans Paramètres → Discord)' : '';
+  mic.title = (st.mute ? 'Réactiver le micro' : 'Couper le micro') + why;
+  deaf.title = (st.deaf ? 'Désactiver la sourdine' : 'Sourdine') + why;
+  $('.dc-ctl-row').hidden = !(connected && !st.control);
   renderDiscordBadge();
 }
 
+$('.dc-tg-mic').addEventListener('click', () => window.lagon.discordToggle(false));
+$('.dc-tg-deaf').addEventListener('click', () => window.lagon.discordToggle(true));
+$('.dc-reauth').addEventListener('click', () => Promise.resolve(window.lagon.discordReauthorize()).then((st) => { if (st) { dc = st; renderDiscord(); } }));
+// closed bar: a click on the red icon gives you your voice back (instead of opening the bar)
+$('.c-dc').addEventListener('click', (e) => {
+  const st = dc || {};
+  if (!(st.status === 'connected' && st.control && (st.mute || st.deaf))) return;
+  e.stopPropagation();
+  window.lagon.discordToggle(!!st.deaf);
+});
+window.lagon.onDiscordVoiceSet((v) => {
+  if (!v) return;
+  const title = v.deaf ? 'Sourdine activée' : v.mute ? 'Micro coupé' : 'Micro réactivé';
+  showHud({ kind: 'dcvoice', icon: v.deaf ? DC_DEAF : v.mute ? DC_MIC_OFF : DC_MIC, title, tone: v.mute || v.deaf ? 'hot' : 'ok' }, 1600);
+});
 $('.dc-btn').addEventListener('click', () => {
   const action = dc && dc.status === 'connected' ? window.lagon.discordDisconnect() : window.lagon.discordConnect();
   Promise.resolve(action).then((st) => { if (st) { dc = st; renderDiscord(); } });

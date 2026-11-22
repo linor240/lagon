@@ -763,12 +763,12 @@ body[data-style="glass"] #island.playing {
 .c-dc { display: none; position: absolute; right: 18px; top: 0; bottom: 0; z-index: 3; align-items: center; gap: 4px; color: #ff5d6c; background: none; }
 .c-dc svg { display: block; overflow: visible; }
 #island.dc-badge:not(.osd) .compact { padding-right: 40px; }
-.c-dc svg, .dc-ic svg, .dc-me svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+svg.dcv, .c-dc svg, .dc-ic svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
 .c-dc svg { width: 16px; height: 16px; }
-.c-dc svg .f, .dc-ic svg .f, .dc-me svg .f { fill: currentColor; stroke: none; }
-.c-dc svg .gap, .dc-ic svg .gap, .dc-me svg .gap { stroke: #000; stroke-width: 4.6; }
+svg.dcv .f { fill: currentColor; stroke: none; }
+svg.dcv .gap { stroke: #000; stroke-width: 4.6; }
 .dc-ic svg .gap { stroke: #1d1d22; }
-.c-dc svg .cut, .dc-ic svg .cut, .dc-me svg .cut { stroke: currentColor; stroke-width: 2.4; }
+svg.dcv .cut { stroke: currentColor; stroke-width: 2.4; }
 #island.dc-badge:not(.osd) .c-dc { display: flex; }
 .o-icon svg.filled { fill: currentColor; stroke: none; width: 16px; height: 16px; color: #8c9cff; }
 
@@ -779,7 +779,20 @@ body[data-style="glass"] #island.playing {
 .page.discord.ready .dc-on { display: flex; }
 .dc-head { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; }
 .dc-chan { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.dc-me { display: flex; gap: 6px; color: #ff5d6c; }
+/* mic / sound buttons, top right of the Discord page */
+.dc-ctl { position: absolute; top: 2px; right: 18px; z-index: 2; display: none; gap: 6px; }
+.page.discord.online .dc-ctl { display: flex; }
+.page.discord.ready .dc-head { padding-right: 70px; }
+.dc-tg { width: 30px; height: 26px; border-radius: 8px; display: grid; place-items: center; background: rgba(255, 255, 255, 0.08); color: var(--text); }
+.dc-tg svg.dcv { width: 15px; height: 15px; }
+.dc-tg svg.dcv .gap { stroke: #2a2a2e; }
+.dc-tg:hover:not(:disabled) { background: rgba(255, 255, 255, 0.16); }
+.dc-tg.cut { background: rgba(255, 93, 108, 0.22); color: #ff5d6c; }
+.dc-tg:disabled { opacity: 0.4; cursor: default; }
+.o-icon svg.dcv { width: 18px; height: 18px; display: block; }
+.c-dc { cursor: pointer; }
+.dc-ctl-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 6px 6px 10px; border-radius: 9px; background: color-mix(in srgb, #5865f2 22%, transparent); font-size: 12px; }
+.dc-ctl-row[hidden] { display: none; }
 .dc-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; overflow-y: auto; align-content: start; flex: 1; min-height: 0; }
 .dc-list::-webkit-scrollbar { width: 3px; }
 .dc-list::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.18); border-radius: 2px; }
