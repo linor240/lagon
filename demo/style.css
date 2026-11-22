@@ -815,6 +815,12 @@ body[data-style="glass"] #island.playing {
 .c-dc .ob-badge { display: flex; color: #ffb347; }
 
 /* ---------- updates (Settings > Bar) ---------- */
-.up-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255, 255, 255, 0.08); font-size: 12px; color: var(--dim); }
+.up-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; padding: 6px 6px 6px 10px; border-radius: 9px; background: rgba(255, 255, 255, 0.05); font-size: 12px; color: var(--dim); }
+.up-row.ready { background: color-mix(in srgb, #ff4d5e 18%, transparent); color: var(--text); font-weight: 600; }
+.up-row.ready .up-btn { background: #ff4d5e; color: #fff; }
+/* red dot on the gear while an update waits */
+.gear { position: absolute; }
+.gear-dot { position: absolute; top: 2px; right: 3px; width: 7px; height: 7px; border-radius: 50%; background: #ff4d5e; box-shadow: 0 0 0 2px #000; opacity: 0; transform: scale(0.4); transition: opacity 0.2s, transform 0.3s var(--spring); }
+.gear.has-update .gear-dot { opacity: 1; transform: scale(1); }
 .up-btn.go { background: var(--accent); color: #000; font-weight: 600; }
 .up-btn:disabled { opacity: 0.5; cursor: default; }

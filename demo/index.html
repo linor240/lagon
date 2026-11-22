@@ -71,6 +71,7 @@
       <!-- only inside the open card, so it is never visible when the island is closed -->
       <button class="gear" title="Paramètres" aria-label="Paramètres">
         <svg viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+        <i class="gear-dot" aria-hidden="true"></i>
       </button>
 
       <div class="pages">
@@ -228,6 +229,10 @@
 
           <div class="s-panels">
             <div class="s-panel on" data-cat="bar">
+              <div class="up-row">
+                <span class="up-text">Version</span>
+                <button class="vl-btn up-btn">Vérifier</button>
+              </div>
               <span class="s-k">Barre</span>
               <label class="sw-row"><span>Mode focus</span><input type="checkbox" data-setting="focusMode" /><i class="sw"></i></label>
               <span class="f-hint">La barre devient un petit trait, sans rien afficher. Clique dessus ou utilise le raccourci pour la retrouver.</span>
@@ -267,10 +272,6 @@
                 </div>
               </div>
               <label class="sw-row"><span>Lancer avec Windows</span><input type="checkbox" data-setting="openAtLogin" /><i class="sw"></i></label>
-              <div class="up-row">
-                <span class="up-text">Version</span>
-                <button class="vl-btn up-btn">Vérifier</button>
-              </div>
             </div>
 
             <div class="s-panel" data-cat="music" data-needs="widgetMusic">

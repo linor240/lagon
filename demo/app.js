@@ -1452,7 +1452,15 @@ function renderUpdate() {
   btn.classList.toggle('go', u.status === 'available');
   btn.disabled = u.status === 'checking' || u.status === 'downloading';
   btn.title = u.status === 'error' && u.error ? u.error : '';
+  // a new version: red dot on the gear, and the row stands out at the top of Settings > Bar
+  const ready = u.status === 'available';
+  gear.classList.toggle('has-update', ready);
+  $('.up-row').classList.toggle('ready', ready);
 }
+// with an update waiting, the gear opens straight on Settings > Bar, where the button is
+gear.addEventListener('click', () => {
+  if (up && up.status === 'available') setTimeout(() => $('.s-nav button[data-cat="bar"]')?.click(), 0);
+});
 function setUpdate(u) { if (u) { up = u; renderUpdate(); } }
 window.lagon.onUpdate(setUpdate);
 Promise.resolve(window.lagon.updateState && window.lagon.updateState()).then(setUpdate);
