@@ -88,7 +88,7 @@ function peek() {
 }
 
 // ---------- pages ----------
-const PAGES = ['music', 'sound', 'pc', 'time', 'twitch', 'valorant', 'discord', 'settings'];
+const PAGES = ['music', 'sound', 'pc', 'time', 'twitch', 'obs', 'valorant', 'discord', 'settings'];
 let page = 'music';
 let userPage = 'music'; // the page the user picked last; peeks and settings don't change it
 const pagesEl = $('.pages');
@@ -927,7 +927,7 @@ function syncFace() {
 let faceSyncTimer = setInterval(syncFace, 250);
 
 // ---------- widgets on / off ----------
-const WIDGET_OF_PAGE = { music: 'widgetMusic', sound: 'widgetSound', pc: 'widgetPc', time: 'widgetTime', twitch: 'widgetTwitch', valorant: 'widgetValorant', discord: 'widgetDiscord' };
+const WIDGET_OF_PAGE = { music: 'widgetMusic', sound: 'widgetSound', pc: 'widgetPc', time: 'widgetTime', twitch: 'widgetTwitch', valorant: 'widgetValorant', discord: 'widgetDiscord', obs: 'widgetObs' };
 const pageEnabled = (name) => !WIDGET_OF_PAGE[name] || !!settings[WIDGET_OF_PAGE[name]];
 
 function applyWidgets() {
@@ -1142,6 +1142,33 @@ function setVl(name, value, sub, cls = '') {
   t.el.classList.toggle('down', cls === 'down');
 }
 
+// The last game: "Victoire 13–9", agent · map, K/D/A · HS % · ACS, and the RR it gave.
+function renderLastMatch(s, m) {
+  const tile = $('.vl-match');
+  const rr = s.lastChange;
+  tile.classList.remove('up', 'down');
+  const agent = $('.vl-agent');
+  if (m && m.agentIcon && agent.getAttribute('src') !== m.agentIcon) agent.src = m.agentIcon;
+  agent.classList.toggle('none', !(m && m.agentIcon));
+  $('.vl-m-rr').textContent = rr == null ? '' : `${signed(rr)} RR`;
+  if (m) {
+    const result = m.draw ? 'Égalité' : m.won ? 'Victoire' : 'Défaite';
+    tile.classList.add(m.draw ? 'flat' : m.won ? 'up' : 'down');
+    $('.vl-m-head').textContent = `${result} ${m.roundsWon}–${m.roundsLost}`;
+    $('.vl-m-where').textContent = `${m.agent} · ${m.map}`;
+    $('.vl-m-stats').textContent = `${m.kills} / ${m.deaths} / ${m.assists} · HS ${m.hs} % · ACS ${m.acs}`;
+  } else if (rr != null) {
+    tile.classList.add(rr > 0 ? 'up' : rr < 0 ? 'down' : 'flat');
+    $('.vl-m-head').textContent = rr > 0 ? 'Victoire' : rr < 0 ? 'Défaite' : 'Égalité';
+    $('.vl-m-where').textContent = 'détails en chargement…';
+    $('.vl-m-stats').textContent = ' ';
+  } else {
+    $('.vl-m-head').textContent = '–';
+    $('.vl-m-where').textContent = 'pas encore de match classé';
+    $('.vl-m-stats').textContent = ' ';
+  }
+}
+
 function renderValorant() {
   const st = vl || {};
   const s = st.stats;
@@ -1163,20 +1190,13 @@ function renderValorant() {
       : high ? `${s.rr} RR` + (s.leaderboard ? ` · #${s.leaderboard.toLocaleString()} du classement` : '')
       : `${s.rr} / 100 RR`;
 
-    if (s.lastChange == null) setVl('last', '–', 'pas encore de match classé');
-    else setVl('last', signed(s.lastChange) + ' RR', s.lastChange > 0 ? 'victoire' : s.lastChange < 0 ? 'défaite' : 'égalité',
-      s.lastChange > 0 ? 'up' : s.lastChange < 0 ? 'down' : '');
+    renderLastMatch(s, st.lastMatch);
 
     const played = s.wins + s.losses + s.draws;
+    const pct = played ? Math.round((s.wins / played) * 100) : 0;
     setVl('today', played ? `${s.wins} V – ${s.losses} D` : '0 match',
-      played ? `${signed(s.todayRR)} RR` + (s.draws ? ` · ${s.draws} nul${s.draws > 1 ? 's' : ''}` : '') : 'en classé depuis minuit',
+      played ? `${signed(s.todayRR)} RR · ${pct} % de victoires` + (s.draws ? ` · ${s.draws} nul${s.draws > 1 ? 's' : ''}` : '') : 'en classé depuis minuit',
       played ? (s.todayRR > 0 ? 'up' : s.todayRR < 0 ? 'down' : '') : '');
-    if (!played) setVl('ratio', '–', 'aucun match aujourd’hui');
-    else {
-      const ratio = s.losses ? (s.wins / s.losses).toFixed(2) : s.wins ? String(s.wins) : '0';
-      const pct = Math.round((s.wins / played) * 100);
-      setVl('ratio', ratio, `${pct} % de victoires`, s.wins > s.losses ? 'up' : s.wins < s.losses ? 'down' : '');
-    }
     if (s.peak && s.peak.tierName) setVl('peak', tierFr(s.peak.tierName), s.peak.season ? `saison ${s.peak.season}` : '');
     else setVl('peak', '–', '');
   }
@@ -1262,10 +1282,14 @@ function dcMember(m) {
 
 function renderDiscordBadge() {
   const st = dc || {};
-  const on = !!(settings.widgetDiscord && settings.discordBadge && st.status === 'connected' && (st.mute || st.deaf));
+  const discordOn = !!(settings.widgetDiscord && settings.discordBadge && st.status === 'connected' && (st.mute || st.deaf));
+  const o = typeof ob === 'object' && ob ? ob : {};
+  const obsOn = !!(settings.widgetObs && settings.obsMicBadge && o.status === 'connected' && (o.live || o.rec) && o.micMuted);
+  const on = discordOn || obsOn;
   island.classList.toggle('dc-badge', on);
   const badge = $('.c-dc');
-  const html = on ? (st.deaf ? DC_DEAF : DC_MIC_OFF) : '';
+  const html = (obsOn ? `<span class="ob-badge" title="Micro coupé dans OBS">${DC_MIC_OFF}</span>` : '')
+    + (discordOn ? (st.deaf ? DC_DEAF : DC_MIC_OFF) : '');
   if (badge.innerHTML !== html) badge.innerHTML = html;
 }
 
@@ -1316,4 +1340,126 @@ window.lagon.onDiscordDm((m) => {
 window.lagon.onDiscordVoice((m) => {
   if (!m || !m.name || !settings.discordVoicePopup) return;
   showHud({ kind: 'voice', icon: DC_LOGO, title: m.kind === 'join' ? `${m.name} a rejoint le vocal` : `${m.name} a quitté le vocal` }, 3000);
+});
+
+// ---------- OBS ----------
+// Stream / recording time, bitrate and dropped frames, OBS's microphone (a click mutes it in OBS)
+// and the scenes (a click switches). Lagon talks to OBS's own WebSocket server on this PC.
+let ob = { status: 'off' };
+let obAt = Date.now(); // when the last durations arrived: the clock keeps running in between
+const OB_ICON = svg('<rect x="2.5" y="6.5" width="13" height="11" rx="2.5"/><path d="m15.5 10.5 6-3.5v10l-6-3.5z"/>');
+function obDur(ms) {
+  const s = Math.max(0, Math.floor(ms / 1000));
+  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), x = s % 60;
+  return (h ? `${h}:${String(m).padStart(2, '0')}` : String(m)) + ':' + String(x).padStart(2, '0');
+}
+
+function renderObs() {
+  const o = ob || {};
+  const connected = o.status === 'connected';
+  const pageEl = $('.page.obs');
+  pageEl.classList.toggle('ready', connected);
+  $('.ob-msg').textContent = {
+    noobs: 'Ouvre OBS sur ce PC : Lagon s’y connecte tout seul.',
+    needpass: 'Ajoute le mot de passe OBS dans les paramètres (roue dentée → OBS).',
+    badpass: 'OBS refuse le mot de passe : vérifie-le dans les paramètres.',
+  }[o.status] || '';
+  $('.tabs [data-page="obs"]').classList.toggle('live', connected && !!o.live);
+  if (connected) {
+    const since = Date.now() - obAt;
+    const liveTile = $('.ob-live');
+    liveTile.classList.toggle('hot', !!o.live);
+    $('.ob-live-v').textContent = o.live ? `● ${obDur(o.liveMs + since)}` : 'Hors ligne';
+    $('.ob-live-s').textContent = o.rec ? `enregistrement ${obDur(o.recMs + since)}` : o.live ? 'en direct' : 'pas de live en cours';
+    $('.ob-kbps').textContent = o.live && o.kbps != null ? `${o.kbps.toLocaleString('fr-FR')} kb/s` : '–';
+    const drop = o.dropped;
+    $('.ob-rate').classList.toggle('warn', o.live && drop != null && drop >= 1);
+    $('.ob-drop').textContent = o.live && drop != null ? `${String(drop).replace('.', ',')} % d’images perdues` : ' ';
+    const mic = $('.ob-mic');
+    mic.disabled = !o.mic;
+    mic.classList.toggle('hot', !!o.micMuted);
+    $('.ob-mic-v').textContent = !o.mic ? '–' : o.micMuted ? 'Coupé' : 'Actif';
+    $('.ob-mic-s').textContent = o.mic ? o.mic : 'aucun micro dans OBS';
+    mic.title = o.mic ? `Clic pour ${o.micMuted ? 'réactiver' : 'couper'} le micro dans OBS` : '';
+    const scenes = Array.isArray(o.scenes) ? o.scenes : [];
+    const box = $('.ob-scenes');
+    const key = JSON.stringify([scenes, o.scene]);
+    if (box.dataset.key !== key) {
+      box.dataset.key = key;
+      box.replaceChildren(...scenes.map((name) => {
+        const b = document.createElement('button');
+        b.className = 'ob-scene' + (name === o.scene ? ' on' : '');
+        b.textContent = name;
+        b.addEventListener('click', () => window.lagon.obsScene(name));
+        return b;
+      }));
+    }
+  }
+  // settings
+  $('.ob-state').textContent = connected ? (o.live ? 'Connecté à OBS · en direct' : 'Connecté à OBS')
+    : o.status === 'needpass' ? 'OBS demande un mot de passe'
+    : o.status === 'badpass' ? 'Mot de passe refusé par OBS'
+    : o.status === 'off' ? 'Désactivé' : 'OBS n’est pas ouvert';
+  $('.ob-pass-saved').hidden = !o.hasPassword;
+  $('.ob-pass-new').hidden = !!o.hasPassword;
+  $('.ob-err').textContent = o.error || '';
+  renderDiscordBadge();
+}
+
+function setObs(o) {
+  if (!o) return;
+  ob = o;
+  obAt = Date.now();
+  renderObs();
+}
+window.lagon.onObs(setObs);
+Promise.resolve(window.lagon.obsState && window.lagon.obsState()).then(setObs);
+setInterval(() => { if (ob && (ob.live || ob.rec) && island.classList.contains('open') && page === 'obs') renderObs(); }, 1000);
+$('.ob-mic').addEventListener('click', () => window.lagon.obsToggleMic());
+window.lagon.onObsAlert((a) => {
+  if (!a || !a.text || !settings.obsAlerts) return;
+  showHud({ kind: 'obs', icon: OB_ICON, title: String(a.text), tone: a.kind === 'drops' ? 'warn' : a.kind === 'live' ? 'hot' : '' }, 3500);
+});
+const obPass = $('.ob-pass');
+obPass.addEventListener('pointerdown', () => window.lagon.keyboard(true));
+obPass.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    const p = obPass.value;
+    obPass.value = '';
+    obPass.blur();
+    if (p.trim()) window.lagon.obsSetPassword(p).then(setObs);
+  }
+  if (e.key === 'Escape') { obPass.value = ''; obPass.blur(); }
+});
+obPass.addEventListener('blur', () => window.lagon.keyboard(false));
+$('.ob-clear').addEventListener('click', () => window.lagon.obsClearPassword().then(setObs));
+
+// ---------- updates ----------
+let up = { status: 'idle' };
+const UP_ICON = svg('<path d="M12 3v12m0 0-5-5m5 5 5-5M4 20h16"/>');
+function renderUpdate() {
+  const u = up || {};
+  const cur = u.current || '';
+  $('.up-text').textContent = {
+    checking: 'Recherche de mise à jour…',
+    downloading: 'Téléchargement de la mise à jour…',
+    available: `Version ${u.available} disponible (tu as la ${cur})`,
+    uptodate: `Version ${cur} · à jour`,
+    error: `Version ${cur} · vérification impossible`,
+  }[u.status] || `Version ${cur}`;
+  const btn = $('.up-btn');
+  btn.textContent = u.status === 'available' ? 'Installer' : 'Vérifier';
+  btn.classList.toggle('go', u.status === 'available');
+  btn.disabled = u.status === 'checking' || u.status === 'downloading';
+  btn.title = u.status === 'error' && u.error ? u.error : '';
+}
+function setUpdate(u) { if (u) { up = u; renderUpdate(); } }
+window.lagon.onUpdate(setUpdate);
+Promise.resolve(window.lagon.updateState && window.lagon.updateState()).then(setUpdate);
+$('.up-btn').addEventListener('click', () => {
+  const action = up && up.status === 'available' ? window.lagon.updateInstall() : window.lagon.updateCheck();
+  Promise.resolve(action).then(setUpdate);
+});
+window.lagon.onUpdateAvailable((m) => {
+  if (m && m.version) showHud({ kind: 'update', icon: UP_ICON, title: `Mise à jour ${m.version} dispo : Paramètres → Barre` }, 5000);
 });

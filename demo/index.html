@@ -56,6 +56,10 @@
           <svg class="filled" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M6 0 1.71 4.29v15.42h5.15V24l4.28-4.29h3.43L22.29 12V0zm14.57 11.14-3.43 3.43h-3.43l-3 3v-3H6.86V1.71h13.71zM11.57 4.71h1.72v5.15h-1.72zm4.72 0H18v5.15h-1.71z"/></svg>
           <i class="live-dot"></i>
         </button>
+        <button data-page="obs" title="OBS">
+          <svg viewBox="0 0 24 24"><rect x="2.5" y="6.5" width="13" height="11" rx="2.5"/><path d="m15.5 10.5 6-3.5v10l-6-3.5z"/></svg>
+          <i class="live-dot"></i>
+        </button>
         <button data-page="valorant" title="Valorant">
           <svg class="filled" viewBox="0 0 24 24"><path d="M23.79 2.15a.25.25 0 0 0-.1.08c-3.38 4.23-6.77 8.46-10.15 12.7-.1.09-.02.28.12.26h7.32a.66.66 0 0 0 .55-.25l2.32-2.9a.72.72 0 0 0 .15-.49V2.32c.01-.11-.1-.21-.21-.17zM.08 2.17C0 2.2 0 2.3 0 2.37v9.23c0 .17.05.33.16.46l7.64 9.55c.12.15.3.25.5.25h7.37c.14.02.22-.17.11-.27C10.66 15.18 5.53 8.77.4 2.35c-.08-.1-.17-.27-.32-.18z"/></svg>
         </button>
@@ -154,6 +158,19 @@
           </div>
         </section>
 
+        <!-- obs: stream health, OBS's microphone, scenes -->
+        <section class="page obs">
+          <div class="ob-off"><span class="ob-msg"></span></div>
+          <div class="ob-on">
+            <div class="ob-row">
+              <div class="tile ob-live"><span class="k">Stream</span><span class="v ob-live-v">Hors ligne</span><span class="s ob-live-s">&nbsp;</span></div>
+              <div class="tile ob-rate"><span class="k">Débit</span><span class="v ob-kbps">–</span><span class="s ob-drop">&nbsp;</span></div>
+              <button class="tile ob-mic" title="Couper / réactiver le micro dans OBS"><span class="k">Micro OBS</span><span class="v ob-mic-v">–</span><span class="s ob-mic-s">&nbsp;</span></button>
+            </div>
+            <div class="ob-scenes"></div>
+          </div>
+        </section>
+
         <!-- valorant -->
         <section class="page valorant">
           <div class="vl-off"><span class="vl-msg"></span></div>
@@ -167,9 +184,18 @@
                 <span class="s vl-rr">&nbsp;</span>
               </div>
             </div>
-            <div class="tile" data-vl="last"><span class="k">Dernier match</span><span class="v">–</span><span class="s">&nbsp;</span></div>
+            <!-- the last game: agent, map, score, K/D/A, headshots, RR -->
+            <div class="tile vl-match">
+              <img class="vl-agent" alt="" />
+              <div class="vl-m-txt">
+                <span class="k">Dernier match</span>
+                <span class="v vl-m-head">–</span>
+                <span class="s vl-m-where">&nbsp;</span>
+                <span class="s vl-m-stats">&nbsp;</span>
+              </div>
+              <span class="vl-m-rr"></span>
+            </div>
             <div class="tile" data-vl="today"><span class="k">Aujourd’hui</span><span class="v">–</span><span class="s">&nbsp;</span></div>
-            <div class="tile" data-vl="ratio"><span class="k">Ratio V/D du jour</span><span class="v">–</span><span class="s">&nbsp;</span></div>
             <div class="tile" data-vl="peak"><span class="k">Meilleur rang</span><span class="v">–</span><span class="s">&nbsp;</span></div>
           </div>
         </section>
@@ -192,6 +218,7 @@
             <button data-cat="pc">PC</button>
             <button data-cat="time">Temps d’écran</button>
             <button data-cat="twitch">Twitch</button>
+            <button data-cat="obs">OBS</button>
             <button data-cat="valorant">Valorant</button>
             <button data-cat="discord">Discord</button>
             <button data-cat="face">Petit visage</button>
@@ -240,6 +267,10 @@
                 </div>
               </div>
               <label class="sw-row"><span>Lancer avec Windows</span><input type="checkbox" data-setting="openAtLogin" /><i class="sw"></i></label>
+              <div class="up-row">
+                <span class="up-text">Version</span>
+                <button class="vl-btn up-btn">Vérifier</button>
+              </div>
             </div>
 
             <div class="s-panel" data-cat="music" data-needs="widgetMusic">
@@ -320,6 +351,26 @@
                 <span class="f-hint tw-err"></span>
                 <label class="sw-row"><span>Bandeau des stats pendant le live</span><input type="checkbox" data-setting="twitchTicker" /><i class="sw"></i></label>
                 <span class="f-hint">Sous la barre fermée, tes stats défilent une par une tant que tu es en live.</span>
+              </div>
+            </div>
+
+            <div class="s-panel" data-cat="obs" data-needs="widgetObs">
+              <span class="s-k">OBS</span>
+              <label class="sw-row s-main"><span>Activer OBS</span><input type="checkbox" data-setting="widgetObs" /><i class="sw"></i></label>
+              <span class="f-hint s-main-hint">Éteint : l’onglet est masqué et Lagon ne se connecte pas à OBS.</span>
+              <div class="s-body">
+                <div class="tw-account"><span class="ob-state">OBS n’est pas ouvert</span></div>
+                <div class="vl-key-saved ob-pass-saved">
+                  <span>Mot de passe OBS enregistré (chiffré)</span>
+                  <button class="vl-btn ob-clear">Supprimer</button>
+                </div>
+                <div class="field ob-pass-new">
+                  <input type="password" class="text-in ob-pass" spellcheck="false" maxlength="200" autocomplete="off" placeholder="Mot de passe du serveur WebSocket" aria-label="Mot de passe OBS" />
+                  <span class="f-hint">Dans OBS : Outils → Paramètres du serveur WebSocket → coche « Activer le serveur WebSocket », puis « Afficher les informations de connexion » et copie le mot de passe. Colle-le ici puis Entrée.</span>
+                </div>
+                <span class="f-hint ob-err"></span>
+                <label class="sw-row"><span>Pop-ups : début et fin du live, images perdues</span><input type="checkbox" data-setting="obsAlerts" /><i class="sw"></i></label>
+                <label class="sw-row"><span>Icône si le micro OBS est coupé pendant le live</span><input type="checkbox" data-setting="obsMicBadge" /><i class="sw"></i></label>
               </div>
             </div>
 

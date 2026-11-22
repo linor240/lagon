@@ -116,7 +116,9 @@
     stats: { live: false, followers: 1284, today: 17, subs: 42, subsNote: '', viewers: null, startedAt: null } };
   const valorant = { hasKey: true, riotId: 'Lagon#EUW', error: null, updated: '21:40', stats: {
     name: 'Lagon', tag: 'EUW', tier: 18, tierName: 'Diamond 1', rr: 47, lastChange: 18, elo: 1547, leaderboard: null, needed: 0,
-    peak: { tier: 21, tierName: 'Ascendant 1', rr: 12, season: 'e9a2' }, wins: 3, losses: 1, draws: 0, todayRR: 34 } };
+    peak: { tier: 21, tierName: 'Ascendant 1', rr: 12, season: 'e9a2' }, wins: 3, losses: 1, draws: 0, todayRR: 34 },
+    lastMatch: { matchId: 'demo', map: 'Ascent', agent: 'Jett', agentIcon: '../img/agent-jett.png', won: true, draw: false,
+      roundsWon: 13, roundsLost: 9, kills: 21, deaths: 14, assists: 5, score: 5390, acs: 245, hs: 27 } };
 
   window.lagon = new Proxy({
     onState: on('media:state'), onLyrics: on('media:lyrics'), onHover: on('island:hover'), onAudio: on('sys:audio'),
