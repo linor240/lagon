@@ -362,6 +362,7 @@ input[type="range"]:hover::-webkit-slider-thumb, input[type="range"]:active::-we
   flex-direction: column;
   justify-content: center;
   gap: 1px;
+  min-width: 0; /* a long text is cut with "…" instead of widening the grid past the card */
   padding: 8px 12px;
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.06);
@@ -723,7 +724,7 @@ body[data-style="glass"] #island.playing {
 
 /* ---------- valorant page ---------- */
 .valorant { position: relative; }
-.vl-grid { display: grid; grid-template-columns: 1.35fr 1fr 1fr; grid-template-rows: repeat(2, 1fr); gap: 8px; padding: 4px 18px 16px; height: 100%; }
+.vl-grid { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: repeat(2, 1fr); gap: 8px; padding: 4px 18px 16px; height: 100%; }
 .vl-rank { grid-row: span 2; flex-direction: row; align-items: center; gap: 12px; }
 /* last game: a wide tile over the two right columns */
 .vl-match { grid-column: span 2; flex-direction: row; align-items: center; gap: 10px; }

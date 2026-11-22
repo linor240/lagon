@@ -1187,7 +1187,7 @@ function renderValorant() {
     const high = s.tier >= 24; // Immortal and Radiant: RR keep counting past 100
     $('.vl-rank .b i').style.width = ranked ? (high ? 100 : Math.min(100, s.rr)) + '%' : '0%';
     $('.vl-rr').textContent = !ranked ? (s.needed > 0 ? `encore ${s.needed} match(s) de placement` : ' ')
-      : high ? `${s.rr} RR` + (s.leaderboard ? ` · #${s.leaderboard.toLocaleString()} du classement` : '')
+      : high ? `${s.rr} RR` + (s.leaderboard ? ` · top ${s.leaderboard.toLocaleString('fr-FR')}` : '')
       : `${s.rr} / 100 RR`;
 
     renderLastMatch(s, st.lastMatch);
