@@ -47,7 +47,7 @@ button { font: inherit; color: inherit; border: 0; background: none; cursor: poi
   top: 0;
   left: 50%;
   translate: -50% 0; /* not transform: the hover scale must grow from the centre */
-  width: 290px;
+  width: calc(290px + var(--xw, 0px));
   height: 36px;
   background: #000;
   border-radius: 0 0 18px 18px;
@@ -66,13 +66,13 @@ body[data-pos="left"] #island { left: 16px; translate: none; transform-origin: t
 body[data-pos="right"] #island { left: auto; right: 16px; translate: none; transform-origin: top right; }
 /* click mode: grow a little under the pointer to show it can be clicked */
 #island.click-mode.hot:not(.open) { scale: 1.06; cursor: pointer; }
-#island.idle { width: 132px; }
+#island.idle { width: calc(132px + var(--xw, 0px)); }
 /* focus mode: a thin line, nothing inside (sizes in sync with sendSizes in app.js) */
 #island.focus:not(.open) { width: 64px !important; height: 6px !important; border-radius: 0 0 6px 6px; box-shadow: none; } /* beats the idle / face sizes */
 body[data-attach="floating"] #island.focus:not(.open) { border-radius: 6px; }
 #island.focus:not(.open) > * { opacity: 0; visibility: hidden; transition: none; }
 #island.focus.hot:not(.open) { scale: 1.15; cursor: pointer; }
-#island.osd { width: 290px; }
+#island.osd { width: var(--osd-w, 290px); }
 #island.playing { box-shadow: 0 6px 22px rgba(0, 0, 0, 0.35), 0 0 26px -6px color-mix(in srgb, var(--accent) 55%, transparent); }
 #island.open {
   width: var(--open-w);
@@ -142,7 +142,13 @@ body[data-attach="floating"] #island.focus:not(.open) { border-radius: 6px; }
 #island.idle .c-clock { display: block; }
 
 /* volume indicator */
-.c-osd { display: none; flex: 1; align-items: center; gap: 10px; padding-left: 6px; }
+.c-osd { display: none; flex: 1; align-items: center; gap: 10px; padding-left: 6px; min-width: 0; }
+/* text pop-ups: icon + text centred in the bar (the bar keeps its width) */
+#island.osd-text .c-osd { justify-content: center; padding-right: 6px; }
+/* while a pop-up comes and goes, the width changes smoothly (no spring overshoot) */
+#island.calm:not(.open) {
+  transition: width 0.32s var(--ease), height 0.5s var(--spring), border-radius 0.5s var(--spring), box-shadow 0.6s var(--ease), scale 0.3s var(--spring);
+}
 #island.osd .c-art, #island.osd .c-text, #island.osd .eq, #island.osd .c-clock { display: none; }
 #island.osd .c-osd { display: flex; animation: osd-in 0.35s var(--spring); }
 @keyframes osd-in { from { opacity: 0; transform: scale(0.9); } }
@@ -539,7 +545,7 @@ body[data-pos="right"] #island.open .full { transform: scale(1); }
   justify-content: center;
   gap: 13px;
 }
-#island.idle.face-mode:not(.open):not(.osd) { width: 184px; }
+#island.idle.face-mode:not(.open):not(.osd) { width: calc(184px + var(--xw, 0px)); }
 #island.idle.face-mode .face { display: block; }
 #island.idle.face-mode .c-clock {
   position: absolute;
@@ -650,7 +656,7 @@ body[data-style="glass"] #island.playing {
 .o-icon.warn { color: var(--warn); }
 .o-icon.ok { color: #6ee7a0; }
 .o-icon.hot { color: var(--hot); }
-.o-text { display: none; flex: 1; min-width: 0; flex-direction: column; justify-content: center; line-height: 1.2; }
+.o-text { display: none; flex: 0 1 auto; min-width: 0; flex-direction: column; justify-content: center; line-height: 1.2; }
 .o-title { font-size: 12.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .o-sub { font-size: 11px; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .o-sub:empty { display: none; }
@@ -840,3 +846,22 @@ svg.dcv .cut { stroke: currentColor; stroke-width: 2.4; }
 .gear.has-update .gear-dot { opacity: 1; transform: scale(1); }
 .up-btn.go { background: var(--accent); color: #000; font-weight: 600; }
 .up-btn:disabled { opacity: 0.5; cursor: default; }
+
+/* ---------- stats pinned to the closed bar ---------- */
+.c-stats { position: absolute; top: 0; right: 12px; height: 36px; display: none; align-items: center; gap: 9px; font-size: 11.5px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--text); }
+.c-stats .cs b { font-size: 9.5px; font-weight: 700; letter-spacing: 0.04em; color: var(--faint); }
+#island.has-stats:not(.open):not(.osd):not(.focus) .c-stats { display: flex; }
+#island.has-stats:not(.open):not(.osd):not(.focus) .compact { right: var(--xw, 0px); }
+#island.open .c-stats, #island.osd .c-stats { display: none; }
+body[data-attach="floating"] .c-stats { top: var(--float-gap); }
+.bar-stats button.on { background: rgba(255, 255, 255, 0.18); color: var(--text); }
+
+/* ---------- shortcuts ---------- */
+.hk-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 6px; }
+.hk-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 12.5px; }
+.hk-btn { min-width: 120px; height: 26px; padding: 0 10px; border-radius: 8px; background: rgba(255, 255, 255, 0.08); color: var(--text); font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.hk-btn:hover { background: rgba(255, 255, 255, 0.14); }
+.hk-btn.editing { background: var(--accent); color: #000; }
+.hk-btn.taken { box-shadow: inset 0 0 0 1px var(--warn); color: var(--warn); }
+.hk-err { color: var(--warn); }
+.hk-err:empty { display: none; }

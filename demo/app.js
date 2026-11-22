@@ -15,6 +15,8 @@ let lyricIdx = -2;
 let compactLine = null;
 let hovering = false;
 let peekTimer = null;
+let settingsLoaded = false; // the saved settings arrived (until then the page uses its defaults)
+let barXw = 0; // extra width of the closed island for the pinned stats (see renderBarStats)
 let paused = false; // true while hidden for a fullscreen app
 // replaced by the saved settings as soon as the main process answers
 let settings = {
@@ -65,7 +67,7 @@ island.addEventListener('click', () => {
 let sentSizes = '';
 function sendSizes(idle) {
   const focus = !!settings.focusMode;
-  const w = focus ? 64 : !idle ? 290 : settings.idleFace ? 184 : 132;
+  const w = focus ? 64 : (!idle ? 290 : settings.idleFace ? 184 : 132) + barXw;
   const gap = settings.islandAttach === 'floating' ? 8 : 0; // floating: the island starts 8px lower
   const tickerRow = island.classList.contains('ticker-on') ? 22 : 0; // live ticker under the closed island
   const h = focus ? 6 : 36 + tickerRow; // keep in sync with #island.focus in style.css
@@ -98,6 +100,11 @@ const gear = $('.gear');
 function setPage(name, instant = false, byUser = true) {
   page = name;
   if (byUser) userPage = name;
+  // kept in the settings: Lagon opens on it again, even after a restart
+  if (byUser && name !== 'settings' && settingsLoaded && settings.lastPage !== name) {
+    settings.lastPage = name;
+    window.lagon.setSetting('lastPage', name);
+  }
   pagesEl.classList.toggle('instant', instant);
   pagesEl.style.setProperty('--page', PAGES.indexOf(name));
   document.querySelectorAll('.page').forEach((p) => p.classList.toggle('current', p.classList.contains(name)));
@@ -119,7 +126,8 @@ let statsOn = false;
 let usageTimer = null; // refreshes the screen time page while it is shown
 function syncStats() {
   syncUsage();
-  const want = island.classList.contains('open') && page === 'pc';
+  const pinned = !!(settings.barCpu || settings.barGpu || settings.barTemp || settings.barPing) && !settings.focusMode && !paused;
+  const want = (island.classList.contains('open') && page === 'pc') || pinned;
   if (want === statsOn) return;
   statsOn = want;
   window.lagon.sys(`stats ${want ? 1 : 0}`);
@@ -510,10 +518,26 @@ function renderHud(h) {
   osd.fill.style.width = (h.bar == null ? 0 : h.bar * 100) + '%';
   osd.pct.textContent = h.value == null ? '' : h.value;
   island.classList.toggle('muted', !!h.muted);
+  // The bar keeps the width it had before the pop-up (no jump); the text is centred in it, and
+  // only a text too long for it makes the bar grow a little (in steps of 20 px, max 360).
+  let need = 290; // bar pop-ups (volume, brightness) as before
+  if (h.bar == null) {
+    const w = (el) => { const r = document.createRange(); r.selectNodeContents(el); return r.getBoundingClientRect().width; };
+    const text = Math.max(w(osd.title), osd.sub.textContent ? w(osd.sub) : 0);
+    const pct = osd.pct.textContent ? w(osd.pct) + 10 : 0;
+    need = 8 + 6 + 20 + 10 + text + pct + 22;
+  }
+  const width = Math.min(360, Math.max(osdBase, Math.ceil(need / 20) * 20));
+  island.style.setProperty('--osd-w', width + 'px');
 }
+let osdBase = 290; // the closed bar's width when the pop-up started
+let calmTimer = null;
 function showHud(h, ms = 1800) {
   if (island.classList.contains('open') || settings.focusMode) return;
   hudKind = h.kind;
+  if (!island.classList.contains('osd')) osdBase = island.offsetWidth;
+  clearTimeout(calmTimer);
+  island.classList.add('calm'); // soft width changes, no spring bounce, while a pop-up is shown
   island.classList.add('osd');
   renderHud(h);
   clearTimeout(osdTimer);
@@ -523,6 +547,8 @@ function hideOsd() {
   clearTimeout(osdTimer);
   hudKind = null;
   island.classList.remove('osd', 'osd-text');
+  clearTimeout(calmTimer);
+  calmTimer = setTimeout(() => island.classList.remove('calm'), 500); // back to the usual size softly too
 }
 
 const volumeHud = () => ({
@@ -746,6 +772,11 @@ const HOST_RE = /^[A-Za-z0-9.:-]{1,253}$/;
 function applySettings(s) {
   if (!s) return;
   settings = s;
+  if (!settingsLoaded) {
+    settingsLoaded = true;
+    // back on the tab used last time (if its widget is still on)
+    if (s.lastPage && PAGES.includes(s.lastPage) && pageEnabled(s.lastPage) && s.lastPage !== page) setPage(s.lastPage, true);
+  }
   settingsPage.querySelectorAll('input[data-setting]').forEach((i) => { i.checked = !!s[i.dataset.setting]; });
   settingsPage.querySelectorAll('[data-setting] button').forEach((b) => {
     b.classList.toggle('on', String(s[b.parentElement.dataset.setting]) === b.dataset.v);
@@ -770,6 +801,9 @@ function applySettings(s) {
   island.classList.toggle('click-mode', s.openMode === 'click');
   island.classList.toggle('focus', !!s.focusMode);
   if (typeof renderDiscord === 'function') renderDiscord();
+  if (typeof renderHotkeys === 'function') renderHotkeys();
+  if (typeof renderBarStats === 'function') renderBarStats();
+  if (typeof syncStats === 'function') syncStats();
   if (s.focusMode) { hideOsd(); if (island.classList.contains('open') && !hovering) setOpen(false); }
   if (typeof syncTicker === 'function') syncTicker();
   const root = document.documentElement.style;
@@ -1501,3 +1535,109 @@ $('.up-btn').addEventListener('click', () => {
 window.lagon.onUpdateAvailable((m) => {
   if (m && m.version) showHud({ kind: 'update', icon: UP_ICON, title: `Mise à jour ${m.version} dispo : Paramètres → Barre` }, 5000);
 });
+
+// ---------- stats pinned to the closed bar ----------
+// Chosen in Settings > Bar (CPU, GPU, GPU temperature, ping, Twitch followers): a strip at the right
+// end of the closed island, which grows by the strip's width.
+let barSys = null;
+const barStatsEl = $('.c-stats');
+function renderBarStats() {
+  const s = barSys || {};
+  const items = [];
+  if (settings.barCpu) items.push(['CPU', s.cpu >= 0 ? `${Math.round(s.cpu)}%` : '–']);
+  if (settings.barGpu) items.push(['GPU', s.gpu >= 0 ? `${s.gpu}%` : '–']);
+  if (settings.barTemp) items.push(['', s.gpuTemp > 0 ? `${s.gpuTemp}°` : '–°']);
+  if (settings.barPing) items.push(['', s.ping >= 0 ? `${s.ping} ms` : '– ms']);
+  if (settings.barFollowers) {
+    const f = tw && tw.stats && tw.stats.followers;
+    items.push(['♥', f != null ? Number(f).toLocaleString('fr-FR') : '–']);
+  }
+  const on = items.length > 0 && !settings.focusMode;
+  island.classList.toggle('has-stats', on);
+  barStatsEl.replaceChildren(...items.map(([k, v]) => {
+    const span = document.createElement('span');
+    span.className = 'cs';
+    if (k) { const b = document.createElement('b'); b.textContent = k; span.append(b, ' '); }
+    span.append(v);
+    return span;
+  }));
+  // a stable width (it would jitter with every number otherwise): measured, rounded up to 8 px
+  const xw = on ? Math.ceil((barStatsEl.scrollWidth + 14) / 8) * 8 : 0;
+  if (xw !== barXw) {
+    barXw = xw;
+    island.style.setProperty('--xw', xw + 'px');
+    sendSizes(island.classList.contains('idle'));
+  }
+  settingsPage.querySelectorAll('.bar-stats button').forEach((b) => b.classList.toggle('on', !!settings[b.dataset.k]));
+}
+settingsPage.querySelectorAll('.bar-stats button').forEach((b) => b.addEventListener('click', () => {
+  window.lagon.setSetting(b.dataset.k, !settings[b.dataset.k]).then(applySettings);
+}));
+window.lagon.onStats((s) => { barSys = s; if (island.classList.contains('has-stats')) renderBarStats(); });
+window.lagon.onTwitchStats(() => renderBarStats());
+
+// ---------- shortcuts (Settings > Shortcuts) ----------
+// Click one, then press the keys: Ctrl / Alt / Shift + a letter, a digit or F1–F12.
+const HK_DEFAULTS = { focusHotkey: 'ctrl+alt+f', discordMuteHotkey: 'ctrl+alt+m', discordDeafHotkey: 'ctrl+alt+d', reloadHotkey: 'ctrl+alt+r' };
+const HK_NAMES = { focusHotkey: 'Mode focus', discordMuteHotkey: 'Micro Discord', discordDeafHotkey: 'Sourdine Discord', reloadHotkey: 'Recharger Lagon' };
+let hkState = {};
+let hkEditing = null;
+const hkLabel = (s) => (!s || s === 'off' ? 'Aucun' : s.split('+').map((p) => ({ ctrl: 'Ctrl', alt: 'Alt', shift: 'Maj' })[p] || p.toUpperCase()).join(' + '));
+function hkError(msg) { $('.hk-err').textContent = msg || ''; }
+function renderHotkeys() {
+  document.querySelectorAll('.hk-row').forEach((row) => {
+    const key = row.dataset.hk;
+    const btn = row.querySelector('.hk-btn');
+    const editing = hkEditing === key;
+    btn.textContent = editing ? 'Appuie sur les touches…' : hkLabel(settings[key]);
+    btn.classList.toggle('editing', editing);
+    const taken = !editing && hkState[key] === 'taken' && settings[key] !== 'off';
+    btn.classList.toggle('taken', taken);
+    btn.title = taken ? 'Déjà utilisé par une autre application : choisis-en un autre' : '';
+  });
+}
+function hkStop() {
+  if (!hkEditing) return;
+  hkEditing = null;
+  window.lagon.keyboard(false);
+  window.lagon.hotkeysPause(false);
+  renderHotkeys();
+}
+document.querySelectorAll('.hk-row').forEach((row) => row.querySelector('.hk-btn').addEventListener('click', () => {
+  if (hkEditing === row.dataset.hk) { hkStop(); return; }
+  hkEditing = row.dataset.hk;
+  hkError('');
+  window.lagon.keyboard(true); // keys go to Lagon while recording
+  window.lagon.hotkeysPause(true); // and not to its own shortcuts
+  renderHotkeys();
+}));
+document.addEventListener('keydown', (e) => {
+  if (!hkEditing) return;
+  e.preventDefault();
+  e.stopPropagation();
+  if (e.key === 'Escape') { hkStop(); return; }
+  const key = hkEditing;
+  if (e.key === 'Backspace' || e.key === 'Delete') {
+    window.lagon.setSetting(key, 'off').then(applySettings);
+    hkStop();
+    return;
+  }
+  const m = /^Key([A-Z])$/.exec(e.code) || /^Digit([0-9])$/.exec(e.code) || /^(F(?:[1-9]|1[0-2]))$/.exec(e.code);
+  if (!m) return; // a modifier alone: wait for the rest
+  const mods = [e.ctrlKey && 'ctrl', e.altKey && 'alt', e.shiftKey && 'shift'].filter(Boolean);
+  if (!mods.length) { hkError('Ajoute Ctrl, Alt ou Maj avec la touche.'); return; }
+  const spec = [...mods, m[1].toLowerCase()].join('+');
+  const other = Object.keys(HK_DEFAULTS).find((k) => k !== key && settings[k] === spec);
+  if (other) { hkError(`${hkLabel(spec)} sert déjà à « ${HK_NAMES[other]} ».`); return; }
+  window.lagon.setSetting(key, spec).then(applySettings);
+  hkStop();
+}, true);
+$('.hk-reset').addEventListener('click', async () => {
+  hkStop();
+  hkError('');
+  let s = null;
+  for (const [k, v] of Object.entries(HK_DEFAULTS)) s = await window.lagon.setSetting(k, v);
+  applySettings(s);
+});
+window.lagon.onHotkeys((st) => { if (st) { hkState = st; renderHotkeys(); } });
+Promise.resolve(window.lagon.hotkeysState && window.lagon.hotkeysState()).then((st) => { if (st) { hkState = st; renderHotkeys(); } });

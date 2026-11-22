@@ -17,6 +17,7 @@
     widgetTwitch: true, twitchTicker: true, twitchClientId: '', display: 'primary', openAtLogin: true,
     widgetValorant: true, valoRiotId: 'Lagon#EUW', valoRegion: 'eu', valoPlatform: 'pc',
     musicPriority: true, focusMode: false, focusHotkey: 'ctrl+alt+f',
+    discordMuteHotkey: 'ctrl+alt+m', discordDeafHotkey: 'ctrl+alt+d', reloadHotkey: 'ctrl+alt+r',
   };
 
   // album cover: a gradient drawn here (no real artwork)

@@ -34,6 +34,9 @@
       </div>
     </div>
 
+    <!-- stats chosen in Settings > Bar, always shown at the right end of the closed island -->
+    <div class="c-stats" aria-live="off"></div>
+
     <!-- live ticker: a second row under the closed island while streaming -->
     <div class="ticker" aria-live="polite"><i class="tk-dot"></i><span class="tk-text"></span></div>
 
@@ -227,6 +230,7 @@
             <button data-cat="discord">Discord</button>
             <button data-cat="face">Petit visage</button>
             <button data-cat="hud">HUD &amp; popups</button>
+            <button data-cat="keys">Raccourcis</button>
             <button data-cat="perf">Performance</button>
           </nav>
 
@@ -239,10 +243,7 @@
               <span class="s-k">Barre</span>
               <label class="sw-row"><span>Mode focus</span><input type="checkbox" data-setting="focusMode" /><i class="sw"></i></label>
               <span class="f-hint">La barre devient un petit trait, sans rien afficher. Clique dessus ou utilise le raccourci pour la retrouver.</span>
-              <span class="f-k">Raccourci du mode focus</span>
-              <div class="seg" data-setting="focusHotkey">
-                <button data-v="ctrl+alt+f">Ctrl+Alt+F</button><button data-v="ctrl+shift+f">Ctrl+Maj+F</button><button data-v="alt+f">Alt+F</button><button data-v="off">Aucun</button>
-              </div>
+
               <span class="f-k">Ouverture</span>
               <div class="seg" data-setting="openMode">
                 <button data-v="hover">Au survol</button><button data-v="click">Au clic</button>
@@ -273,6 +274,10 @@
                     <button data-v="30">30 %</button><button data-v="45">45 %</button><button data-v="60">60 %</button><button data-v="75">75 %</button><button data-v="90">90 %</button>
                   </div>
                 </div>
+              </div>
+              <span class="f-k">Toujours afficher dans la barre fermée</span>
+              <div class="chips bar-stats">
+                <button data-k="barCpu">CPU</button><button data-k="barGpu">GPU</button><button data-k="barTemp">Temp. GPU</button><button data-k="barPing">Ping</button><button data-k="barFollowers">Followers Twitch</button>
               </div>
               <label class="sw-row"><span>Lancer avec Windows</span><input type="checkbox" data-setting="openAtLogin" /><i class="sw"></i></label>
             </div>
@@ -396,15 +401,7 @@
                   <span>Autorise Lagon à couper ton micro et ton son</span>
                   <button class="vl-btn dc-reauth">Autoriser</button>
                 </div>
-                <span class="f-k">Raccourci : couper / réactiver le micro</span>
-                <div class="seg" data-setting="discordMuteHotkey">
-                  <button data-v="ctrl+alt+m">Ctrl+Alt+M</button><button data-v="ctrl+shift+m">Ctrl+Maj+M</button><button data-v="alt+m">Alt+M</button><button data-v="off">Aucun</button>
-                </div>
-                <span class="f-k">Raccourci : sourdine</span>
-                <div class="seg" data-setting="discordDeafHotkey">
-                  <button data-v="ctrl+alt+d">Ctrl+Alt+D</button><button data-v="ctrl+shift+d">Ctrl+Maj+D</button><button data-v="alt+d">Alt+D</button><button data-v="off">Aucun</button>
-                </div>
-                <span class="f-hint">Aussi : les boutons en haut de l’onglet Discord, ou un clic sur l’icône rouge de la barre fermée (ouverture « Au clic ») pour réactiver.</span>
+                <span class="f-hint">Couper ou réactiver : les boutons en haut de l’onglet Discord, un clic sur l’icône rouge de la barre fermée (ouverture « Au clic »), ou les raccourcis (Paramètres → Raccourcis).</span>
                 <span class="f-hint">Discord doit être ouvert sur ce PC. Réservé aux testeurs de l’appli Lagon sur Discord.</span>
               </div>
             </div>
@@ -466,6 +463,19 @@
                 <label class="sw-row"><span>Wi-Fi / réseau</span><input type="checkbox" data-setting="hudWifi" /><i class="sw"></i></label>
                 <label class="sw-row"><span>Casque Bluetooth</span><input type="checkbox" data-setting="hudBluetooth" /><i class="sw"></i></label>
               </div>
+            </div>
+
+            <div class="s-panel" data-cat="keys">
+              <span class="s-k">Raccourcis</span>
+              <div class="hk-list">
+                <div class="hk-row" data-hk="focusHotkey"><span>Mode focus</span><button class="hk-btn"></button></div>
+                <div class="hk-row" data-hk="discordMuteHotkey"><span>Discord : couper / réactiver le micro</span><button class="hk-btn"></button></div>
+                <div class="hk-row" data-hk="discordDeafHotkey"><span>Discord : sourdine</span><button class="hk-btn"></button></div>
+                <div class="hk-row" data-hk="reloadHotkey"><span>Recharger Lagon</span><button class="hk-btn"></button></div>
+              </div>
+              <span class="f-hint">Clique sur un raccourci puis appuie sur la combinaison voulue : Ctrl, Alt ou Maj + une lettre, un chiffre ou F1–F12. Échap pour annuler, Retour arrière pour le désactiver. Ils marchent partout, même en jeu.</span>
+              <span class="f-hint hk-err"></span>
+              <div><button class="vl-btn hk-reset">Tout réinitialiser</button></div>
             </div>
 
             <div class="s-panel" data-cat="perf">
