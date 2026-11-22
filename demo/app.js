@@ -1156,7 +1156,7 @@ function renderLastMatch(s, m) {
     tile.classList.add(m.draw ? 'flat' : m.won ? 'up' : 'down');
     $('.vl-m-head').textContent = `${result} ${m.roundsWon}–${m.roundsLost}`;
     $('.vl-m-where').textContent = `${m.agent} · ${m.map}`;
-    $('.vl-m-stats').textContent = `${m.kills} / ${m.deaths} / ${m.assists} · HS ${m.hs} % · ACS ${m.acs}`;
+    $('.vl-m-stats').textContent = `${m.kills}/${m.deaths}/${m.assists} · ${m.hs} % HS · ACS ${m.acs}`;
   } else if (rr != null) {
     tile.classList.add(rr > 0 ? 'up' : rr < 0 ? 'down' : 'flat');
     $('.vl-m-head').textContent = rr > 0 ? 'Victoire' : rr < 0 ? 'Défaite' : 'Égalité';

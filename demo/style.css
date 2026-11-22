@@ -733,7 +733,9 @@ body[data-style="glass"] #island.playing {
 .vl-match .v { font-size: 17px; }
 .vl-match.up .vl-m-head { color: #3ddc97; }
 .vl-match.down .vl-m-head { color: #ff5d6c; }
-.vl-m-rr { flex: none; font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--dim); }
+.vl-m-top { display: flex; justify-content: space-between; gap: 8px; }
+/* the RR sit on the title line: the stats line keeps the tile's whole width */
+.vl-m-rr { flex: none; font-size: 11.5px; font-weight: 700; letter-spacing: 0; text-transform: none; font-variant-numeric: tabular-nums; color: var(--dim); }
 .vl-match.up .vl-m-rr { color: #3ddc97; }
 .vl-match.down .vl-m-rr { color: #ff5d6c; }
 .vl-icon { width: 64px; height: 64px; flex: none; object-fit: contain; }
