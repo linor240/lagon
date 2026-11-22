@@ -20,6 +20,8 @@ let barXw = 0; // extra width of the closed island for the pinned stats (see ren
 let paused = false; // true while hidden for a fullscreen app
 let winTheme = null; // Windows' { light, accent: "#rrggbb" } (null in the browser demo)
 let coverPal = null; // hues of the current artwork (see pickAccent), null = greyscale / none yet
+let welcomeOn = false; // the first-launch screen is shown (the card stays open, big)
+let tabOrderKey = ''; // tab order applied last (see applyTabOrder)
 // replaced by the saved settings as soon as the main process answers
 let settings = {
   openMode: 'hover', position: 'center', peekOnTrack: true, compactLyrics: true, volumeOsd: true, idleFace: true, faceSleepSeconds: 120,
@@ -48,7 +50,7 @@ function setOpen(open) {
 window.lagon.onHover((on) => {
   hovering = on;
   island.classList.toggle('hot', on);
-  if (!on) { setOpen(false); return; }
+  if (!on) { if (!welcomeOn) setOpen(false); return; } // the welcome screen waits for its button
   if (settings.focusMode) return; // focus: a thin line that never opens (a click brings the bar back)
   if (peekTimer) {
     // the pointer caught a song peek: keep it open
@@ -66,7 +68,8 @@ island.addEventListener('click', () => {
   setOpen(true);
 });
 
-// Sizes must match style.css (#island, #island.idle, #island.idle.face-mode, --open-w / --open-h).
+// Sizes must match style.css (#island, #island.idle, #island.idle.face-mode, --open-w / --open-h,
+// #island.big for the settings and the welcome screen).
 let sentSizes = '';
 function sendSizes(idle) {
   const focus = !!settings.focusMode;
@@ -74,7 +77,8 @@ function sendSizes(idle) {
   const gap = settings.islandAttach === 'floating' ? 8 : 0; // floating: the island starts 8px lower
   const tickerRow = island.classList.contains('ticker-on') ? 22 : 0; // live ticker under the closed island
   const h = focus ? 6 : 36 + tickerRow; // keep in sync with #island.focus in style.css
-  const sizes = { compact: { w, h: h + gap }, open: { w: 540, h: 228 + gap } };
+  const big = island.classList.contains('big');
+  const sizes = { compact: { w, h: h + gap }, open: big ? { w: 720, h: 420 + gap } : { w: 540, h: 228 + gap } };
   if (JSON.stringify(sizes) === sentSizes) return;
   sentSizes = JSON.stringify(sizes);
   window.lagon.setSizes(sizes);
@@ -82,7 +86,7 @@ function sendSizes(idle) {
 
 // Briefly show the music card when a new song starts.
 function peek() {
-  if (hovering || !settings.peekOnTrack || settings.focusMode) return;
+  if (hovering || !settings.peekOnTrack || settings.focusMode || welcomeOn) return;
   setPage('music', true, false);
   setOpen(true);
   clearTimeout(peekTimer);
@@ -93,6 +97,7 @@ function peek() {
 }
 
 // ---------- pages ----------
+// in the tabs' order (applyTabOrder rearranges it in place); settings always last
 const PAGES = ['music', 'sound', 'pc', 'time', 'twitch', 'obs', 'valorant', 'discord', 'settings'];
 let page = 'music';
 let userPage = 'music'; // the page the user picked last; peeks and settings don't change it
@@ -113,11 +118,37 @@ function setPage(name, instant = false, byUser = true) {
   document.querySelectorAll('.page').forEach((p) => p.classList.toggle('current', p.classList.contains(name)));
   tabs.forEach((t) => t.classList.toggle('on', t.dataset.page === name));
   gear.classList.toggle('on', name === 'settings');
+  syncBig();
   if (instant) requestAnimationFrame(() => pagesEl.classList.remove('instant'));
   if (name === 'settings') renderDisplays(); // screens may have been plugged in or out
   syncStats();
 }
 tabs.forEach((t) => t.addEventListener('click', () => setPage(t.dataset.page)));
+
+// the settings and the welcome screen use the big card (720x420)
+function syncBig() {
+  island.classList.toggle('big', welcomeOn || page === 'settings');
+  sendSizes(island.classList.contains('idle'));
+}
+
+// Tab order (Settings > Modules, dragged): the tabs, the pages behind them and the list in the
+// settings follow it. Ignored until valid (the demo has none).
+function applyTabOrder(order) {
+  const names = PAGES.filter((p) => p !== 'settings');
+  if (!Array.isArray(order) || order.length !== names.length || !names.every((p) => order.includes(p))) return;
+  const key = order.join();
+  if (key === tabOrderKey) return;
+  tabOrderKey = key;
+  PAGES.splice(0, PAGES.length, ...order, 'settings');
+  const nav = $('.tabs');
+  const last = $('.page.settings');
+  order.forEach((p) => {
+    nav.appendChild(tabs.find((t) => t.dataset.page === p));
+    pagesEl.insertBefore($(`.page.${p}`), last);
+    if (modRows[p]) modList.appendChild(modRows[p]);
+  });
+  setPage(page, true, false); // same page, new place in the row
+}
 gear.addEventListener('click', () => {
   if (page === 'settings') setPage(userPage);
   else setPage('settings', false, false);
@@ -823,14 +854,175 @@ function renderUsage(u) {
 // ---------- settings ----------
 const settingsPage = $('.page.settings');
 
-// categories: the list on the left picks which panel shows on the right
+// All the categories are one long list on the right (like osu!): a click on the left scrolls to
+// one, and while the list scrolls the category being read lights up.
 const catButtons = [...settingsPage.querySelectorAll('.s-nav button')];
 const catPanels = [...settingsPage.querySelectorAll('.s-panel')];
-function showCategory(cat) {
-  catButtons.forEach((b) => b.classList.toggle('on', b.dataset.cat === cat));
-  catPanels.forEach((p) => p.classList.toggle('on', p.dataset.cat === cat));
+const sPanels = $('.s-panels');
+const lightCategory = (cat) => catButtons.forEach((b) => b.classList.toggle('on', b.dataset.cat === cat));
+function showCategory(cat, smooth = true) {
+  const p = catPanels.find((x) => x.dataset.cat === cat);
+  if (!p) return;
+  lightCategory(cat);
+  spyHold = Date.now() + 700; // the clicked one stays lit, even if the list can't scroll that far
+  sPanels.scrollTo({ top: p.offsetTop, behavior: smooth ? 'smooth' : 'instant' });
 }
 catButtons.forEach((b) => b.addEventListener('click', () => showCategory(b.dataset.cat)));
+let spyFrame = 0;
+let spyHold = 0;
+function spyCategory() {
+  spyFrame = 0;
+  if (Date.now() < spyHold) return;
+  const top = sPanels.scrollTop;
+  let cur = catPanels[0];
+  if (top + sPanels.clientHeight >= sPanels.scrollHeight - 4) cur = catPanels[catPanels.length - 1]; // the end of the list
+  else catPanels.forEach((p) => { if (p.offsetTop - 70 <= top) cur = p; });
+  lightCategory(cur.dataset.cat);
+}
+sPanels.addEventListener('scroll', () => { if (!spyFrame) spyFrame = requestAnimationFrame(spyCategory); }, { passive: true });
+
+// Modules: one row per tab, switched on / off here and dragged by its dots to change the order
+const MODULES = [
+  ['music', 'widgetMusic', 'Musique', 'Titre, pochette et paroles'],
+  ['sound', 'widgetSound', 'Son', 'Volume de chaque appli'],
+  ['pc', 'widgetPc', 'PC', 'CPU, GPU, RAM et ping'],
+  ['time', 'widgetTime', 'Temps d’écran', 'Le temps passé sur chaque appli'],
+  ['twitch', 'widgetTwitch', 'Twitch', 'Followers, subs, spectateurs'],
+  ['obs', 'widgetObs', 'OBS', 'Live, débit et micro'],
+  ['valorant', 'widgetValorant', 'Valorant', 'Rang, RR et dernier match'],
+  ['discord', 'widgetDiscord', 'Discord', 'Ton vocal, micro et sourdine'],
+];
+const ACCOUNT_WIDGETS = ['widgetTwitch', 'widgetObs', 'widgetDiscord', 'widgetValorant'];
+const GRIP_SVG = '<svg viewBox="0 0 24 24"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg>';
+const tabIcon = (p) => tabs.find((t) => t.dataset.page === p).querySelector('svg').cloneNode(true);
+function moduleText(name, desc) {
+  const box = document.createElement('span');
+  box.className = 'mod-txt';
+  const n = document.createElement('b');
+  n.textContent = name;
+  const d = document.createElement('span');
+  d.textContent = desc;
+  box.append(n, d);
+  return box;
+}
+const modList = $('.mod-list');
+const modRows = {};
+MODULES.forEach(([p, key, name, desc]) => {
+  const row = document.createElement('div');
+  row.className = 'mod-row';
+  row.dataset.page = p;
+  const grip = document.createElement('span');
+  grip.className = 'mod-grip';
+  grip.title = 'Glisser pour changer l’ordre';
+  grip.innerHTML = GRIP_SVG; // the app's own icon
+  const ic = document.createElement('span');
+  ic.className = 'mod-ic';
+  ic.append(tabIcon(p));
+  const sw = document.createElement('label');
+  sw.className = 'sw-row';
+  const input = document.createElement('input');
+  input.type = 'checkbox';
+  input.dataset.setting = key;
+  input.setAttribute('aria-label', name);
+  const knob = document.createElement('i');
+  knob.className = 'sw';
+  sw.append(input, knob);
+  row.append(grip, ic, moduleText(name, desc), sw);
+  modList.append(row);
+  modRows[p] = row;
+});
+
+// drag a row by its dots: the others make room, the order is saved on release
+let drag = null;
+modList.addEventListener('pointerdown', (e) => {
+  const grip = e.target.closest('.mod-grip');
+  if (!grip || e.button !== 0) return;
+  e.preventDefault();
+  const rows = [...modList.children];
+  const row = grip.closest('.mod-row');
+  const step = rows.length > 1 ? rows[1].offsetTop - rows[0].offsetTop : row.offsetHeight;
+  drag = { row, rows, step, y0: e.clientY, from: rows.indexOf(row), to: rows.indexOf(row) };
+  grip.setPointerCapture(e.pointerId);
+  row.classList.add('dragging');
+  modList.classList.add('sorting');
+});
+modList.addEventListener('pointermove', (e) => {
+  if (!drag) return;
+  const dy = e.clientY - drag.y0;
+  const { rows, from, step } = drag;
+  drag.to = Math.max(0, Math.min(rows.length - 1, from + Math.round(dy / step)));
+  drag.row.style.translate = `0 ${dy}px`;
+  rows.forEach((r, i) => {
+    if (r === drag.row) return;
+    const shift = i > from && i <= drag.to ? -step : i < from && i >= drag.to ? step : 0;
+    r.style.translate = shift ? `0 ${shift}px` : '';
+  });
+});
+function endDrag() {
+  if (!drag) return;
+  const { rows, row, from, to } = drag;
+  drag = null;
+  modList.classList.remove('sorting');
+  row.classList.remove('dragging');
+  modList.classList.add('settle'); // rows jump to their new place without sliding back
+  rows.forEach((r) => { r.style.translate = ''; });
+  requestAnimationFrame(() => requestAnimationFrame(() => modList.classList.remove('settle')));
+  if (from === to) return;
+  const order = rows.map((r) => r.dataset.page);
+  order.splice(to, 0, ...order.splice(from, 1));
+  applyTabOrder(order); // right away, the saved settings confirm it
+  window.lagon.setSetting('tabOrder', order).then(applySettings);
+}
+modList.addEventListener('pointerup', endDrag);
+modList.addEventListener('pointercancel', endDrag);
+modList.addEventListener('lostpointercapture', endDrag);
+
+// ---------- welcome screen (first launch, or Settings > Général) ----------
+const welcomeEl = $('.welcome');
+const wlGo = $('.wl-go');
+const wlCards = MODULES.map(([p, key, name, desc]) => {
+  const b = document.createElement('button');
+  b.className = 'wl-card';
+  b.dataset.key = key;
+  const ic = document.createElement('span');
+  ic.className = 'mod-ic';
+  ic.append(tabIcon(p));
+  const check = document.createElement('i');
+  check.className = 'wl-check';
+  b.append(ic, moduleText(name, desc), check);
+  b.addEventListener('click', () => window.lagon.setSetting(key, !settings[key]).then(applySettings));
+  return b;
+});
+$('.wl-grid').append(...wlCards);
+function renderWelcome() {
+  wlCards.forEach((c) => c.classList.toggle('on', !!settings[c.dataset.key]));
+  const accounts = ACCOUNT_WIDGETS.some((k) => settings[k]);
+  wlGo.textContent = accounts ? 'Suivant : me connecter' : 'C’est parti';
+  $('.wl-note').style.visibility = accounts ? '' : 'hidden';
+}
+function startWelcome() {
+  welcomeOn = true;
+  clearTimeout(peekTimer); // a song peek started just before would close it
+  peekTimer = null;
+  renderWelcome();
+  island.classList.add('wl-on'); // not "welcome": that class is the screen itself
+  syncBig();
+  setOpen(true);
+}
+wlGo.addEventListener('click', () => {
+  welcomeOn = false;
+  island.classList.remove('wl-on');
+  if (!settings.welcomeDone) window.lagon.setSetting('welcomeDone', true).then(applySettings);
+  if (ACCOUNT_WIDGETS.some((k) => settings[k])) {
+    // accounts to connect: straight to them
+    setPage('settings', false, false);
+    showCategory('accounts', false);
+  } else {
+    syncBig();
+    if (!hovering) setOpen(false);
+  }
+});
+$('.wl-again').addEventListener('click', startWelcome);
 const pingInput = $('.ping-host');
 const HOST_RE = /^[A-Za-z0-9.:-]{1,253}$/;
 
@@ -841,7 +1033,10 @@ function applySettings(s) {
     settingsLoaded = true;
     // back on the tab used last time (if its widget is still on)
     if (s.lastPage && PAGES.includes(s.lastPage) && pageEnabled(s.lastPage) && s.lastPage !== page) setPage(s.lastPage, true);
+    if (s.welcomeDone === false) setTimeout(startWelcome, 600); // first launch: pick the modules
   }
+  applyTabOrder(s.tabOrder);
+  if (welcomeOn) renderWelcome();
   settingsPage.querySelectorAll('input[data-setting]').forEach((i) => { i.checked = !!s[i.dataset.setting]; });
   settingsPage.querySelectorAll('[data-setting] button').forEach((b) => {
     b.classList.toggle('on', String(s[b.parentElement.dataset.setting]) === b.dataset.v);
@@ -858,13 +1053,9 @@ function applySettings(s) {
   applyTheme();
   $('.face').dataset.look = s.faceStyle || 'classic';
   if (typeof syncOled === 'function') syncOled();
-  // options of a widget that is off are greyed out (its category name too)
+  // options of a widget that is off are greyed out
   const needs = { ...s, styleGlass: s.islandStyle === 'glass' };
   settingsPage.querySelectorAll('[data-needs]').forEach((el) => el.classList.toggle('off', !needs[el.dataset.needs]));
-  catButtons.forEach((b) => {
-    const panel = catPanels.find((p) => p.dataset.cat === b.dataset.cat);
-    b.classList.toggle('dim', !!panel && panel.classList.contains('off'));
-  });
   applyWidgets();
   island.classList.toggle('click-mode', s.openMode === 'click');
   island.classList.toggle('focus', !!s.focusMode);
@@ -872,7 +1063,7 @@ function applySettings(s) {
   if (typeof renderHotkeys === 'function') renderHotkeys();
   if (typeof renderBarStats === 'function') renderBarStats();
   if (typeof syncStats === 'function') syncStats();
-  if (s.focusMode) { hideOsd(); if (island.classList.contains('open') && !hovering) setOpen(false); }
+  if (s.focusMode) { hideOsd(); if (island.classList.contains('open') && !hovering && !welcomeOn) setOpen(false); }
   if (typeof syncTicker === 'function') syncTicker();
   const root = document.documentElement.style;
   root.setProperty('--lyric-size', s.lyricsSize + 'px');
@@ -1629,14 +1820,14 @@ function renderUpdate() {
   btn.classList.toggle('go', u.status === 'available');
   btn.disabled = u.status === 'checking' || u.status === 'downloading';
   btn.title = u.status === 'error' && u.error ? u.error : '';
-  // a new version: red dot on the gear, and the row stands out at the top of Settings > Bar
+  // a new version: red dot on the gear, and the row stands out at the top of Settings > Général
   const ready = u.status === 'available';
   gear.classList.toggle('has-update', ready);
   $('.up-row').classList.toggle('ready', ready);
 }
-// with an update waiting, the gear opens straight on Settings > Bar, where the button is
+// with an update waiting, the gear opens straight on Settings > Général, where the button is
 gear.addEventListener('click', () => {
-  if (up && up.status === 'available') setTimeout(() => $('.s-nav button[data-cat="bar"]')?.click(), 0);
+  if (up && up.status === 'available') setTimeout(() => showCategory('general', false), 0);
 });
 function setUpdate(u) { if (u) { up = u; renderUpdate(); } }
 window.lagon.onUpdate(setUpdate);

@@ -1,6 +1,7 @@
 // Demo for the website: stands in for the Lagon app behind the page (window.lagon), with made-up
 // data, so the real interface (copied from renderer/) runs in the browser. Hover opens it, as in Lagon.
 // Query: ?open=<page> keeps it open on that page (screenshots) · ?idle=1 no music (little face)
+// · ?welcome=1 the first-launch screen
 (() => {
   const q = new URLSearchParams(location.search);
   const L = {};
@@ -19,6 +20,7 @@
     widgetValorant: true, valoRiotId: 'Lagon#EUW', valoRegion: 'eu', valoPlatform: 'pc',
     musicPriority: true, focusMode: false, focusHotkey: 'ctrl+alt+f',
     discordMuteHotkey: 'ctrl+alt+m', discordDeafHotkey: 'ctrl+alt+d', reloadHotkey: 'ctrl+alt+r',
+    tabOrder: ['music', 'sound', 'pc', 'time', 'twitch', 'obs', 'valorant', 'discord'], welcomeDone: !q.has('welcome'),
   };
 
   // album cover: a gradient drawn here (no real artwork)

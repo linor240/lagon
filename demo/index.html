@@ -220,268 +220,265 @@
           </div>
         </section>
 
-        <!-- settings (opened with the gear, no tab) -->
+        <!-- settings (opened with the gear, no tab): one long list on the right, its categories on
+             the left light up while it scrolls (the card grows to the big size, see #island.big) -->
         <section class="page settings">
           <nav class="s-nav" aria-label="Catégories">
-            <button data-cat="bar" class="on">Barre</button>
-            <button data-cat="look">Apparence</button>
-            <button data-cat="music">Musique</button>
-            <button data-cat="sound">Son</button>
-            <button data-cat="pc">PC</button>
-            <button data-cat="time">Temps d’écran</button>
-            <button data-cat="twitch">Twitch</button>
-            <button data-cat="obs">OBS</button>
-            <button data-cat="valorant">Valorant</button>
-            <button data-cat="discord">Discord</button>
-            <button data-cat="face">Petit visage</button>
-            <button data-cat="hud">HUD &amp; popups</button>
-            <button data-cat="keys">Raccourcis</button>
-            <button data-cat="perf">Performance</button>
+            <button data-cat="general" class="on"><svg viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg><span>Général</span></button>
+            <button data-cat="look"><svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 0 18c1.1 0 1.8-.9 1.8-1.9 0-.5-.2-.9-.5-1.3-.3-.3-.5-.8-.5-1.3 0-1 .8-1.8 1.8-1.8H17a4 4 0 0 0 4-4c0-4.2-4-7.7-9-7.7z"/><circle cx="7.5" cy="11.5" r="1"/><circle cx="10.5" cy="7.5" r="1"/><circle cx="15.5" cy="8" r="1"/></svg><span>Apparence</span></button>
+            <button data-cat="modules"><svg viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="1.8"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.8"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.8"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.8"/></svg><span>Modules</span></button>
+            <button data-cat="accounts"><svg viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg><span>Connexions</span></button>
+            <button data-cat="popups"><svg viewBox="0 0 24 24"><path d="M6 16v-5a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/></svg><span>Pop-ups</span></button>
+            <button data-cat="keys"><svg viewBox="0 0 24 24"><rect x="2.5" y="6" width="19" height="12" rx="2.5"/><path d="M6.5 10h1M10.5 10h1M14.5 10h1M7.5 14h9"/></svg><span>Raccourcis</span></button>
           </nav>
 
           <div class="s-panels">
-            <div class="s-panel on" data-cat="bar">
+            <div class="s-panel" data-cat="general">
+              <h2 class="s-title">Général</h2>
               <div class="up-row">
                 <span class="up-text">Version</span>
                 <button class="vl-btn up-btn">Vérifier</button>
               </div>
-              <span class="s-k">Barre</span>
-              <label class="sw-row"><span>Mode focus</span><input type="checkbox" data-setting="focusMode" /><i class="sw"></i></label>
-              <span class="f-hint">La barre devient un petit trait, sans rien afficher. Clique dessus ou utilise le raccourci pour la retrouver.</span>
-
-              <span class="f-k">Ouverture</span>
-              <div class="seg" data-setting="openMode">
-                <button data-v="hover">Au survol</button><button data-v="click">Au clic</button>
+              <div class="s-group">
+                <span class="s-k">Barre</span>
+                <label class="sw-row"><span>Mode focus</span><input type="checkbox" data-setting="focusMode" /><i class="sw"></i></label>
+                <span class="f-hint">La barre devient un petit trait, sans rien afficher. Clique dessus ou utilise le raccourci pour la retrouver.</span>
+                <span class="f-k">Ouverture</span>
+                <div class="seg" data-setting="openMode">
+                  <button data-v="hover">Au survol</button><button data-v="click">Au clic</button>
+                </div>
+                <span class="f-k">Position</span>
+                <div class="seg" data-setting="position">
+                  <button data-v="left">Gauche</button><button data-v="center">Centre</button><button data-v="right">Droite</button>
+                </div>
+                <span class="f-k">Taille</span>
+                <div class="seg" data-setting="islandScale" data-type="num">
+                  <button data-v="85">S</button><button data-v="100">M</button><button data-v="115">L</button><button data-v="130">XL</button>
+                </div>
+                <span class="f-k">Écran</span>
+                <div class="seg displays" data-setting="display"></div>
+                <span class="f-k">Attache</span>
+                <div class="seg" data-setting="islandAttach">
+                  <button data-v="attached">Collée en haut</button><button data-v="floating">Flottante</button>
+                </div>
+                <span class="f-k">Toujours afficher dans la barre fermée</span>
+                <div class="chips bar-stats">
+                  <button data-k="barCpu">CPU</button><button data-k="barGpu">GPU</button><button data-k="barTemp">Temp. GPU</button><button data-k="barPing">Ping</button><button data-k="barFollowers">Followers Twitch</button>
+                </div>
+                <label class="sw-row"><span>Lancer avec Windows</span><input type="checkbox" data-setting="openAtLogin" /><i class="sw"></i></label>
+                <div><button class="vl-btn wl-again">Revoir l’écran d’accueil</button></div>
               </div>
-              <span class="f-k">Position</span>
-              <div class="seg" data-setting="position">
-                <button data-v="left">Gauche</button><button data-v="center">Centre</button><button data-v="right">Droite</button>
+              <div class="s-group">
+                <span class="s-k">Performance</span>
+                <label class="sw-row"><span>Masquer et mettre en pause en plein écran</span><input type="checkbox" data-setting="hideInFullscreen" /><i class="sw"></i></label>
+                <span class="f-hint">Jeu, vidéo ou navigateur en plein écran : Lagon disparaît et tout s’arrête (seul le temps d’écran continue de compter).</span>
+                <label class="sw-row"><span>Accélération par la carte graphique</span><input type="checkbox" data-setting="gpuAcceleration" /><i class="sw"></i></label>
+                <span class="f-hint">Désactivée : environ 85 Mo de mémoire en moins et la carte graphique reste au repos, pour la même fluidité.</span>
+                <div class="restart-row" hidden>
+                  <span>Redémarre Lagon pour appliquer ce changement.</span>
+                  <button class="restart">Redémarrer</button>
+                </div>
               </div>
-              <span class="f-k">Taille</span>
-              <div class="seg" data-setting="islandScale" data-type="num">
-                <button data-v="85">S</button><button data-v="100">M</button><button data-v="115">L</button><button data-v="130">XL</button>
-              </div>
-              <span class="f-k">Écran</span>
-              <div class="seg displays" data-setting="display"></div>
-              <span class="f-k">Attache</span>
-              <div class="seg" data-setting="islandAttach">
-                <button data-v="attached">Collée en haut</button><button data-v="floating">Flottante</button>
-              </div>
-              <span class="f-k">Toujours afficher dans la barre fermée</span>
-              <div class="chips bar-stats">
-                <button data-k="barCpu">CPU</button><button data-k="barGpu">GPU</button><button data-k="barTemp">Temp. GPU</button><button data-k="barPing">Ping</button><button data-k="barFollowers">Followers Twitch</button>
-              </div>
-              <label class="sw-row"><span>Lancer avec Windows</span><input type="checkbox" data-setting="openAtLogin" /><i class="sw"></i></label>
             </div>
 
             <div class="s-panel" data-cat="look">
-              <span class="s-k">Apparence</span>
-              <span class="f-k">Thème</span>
-              <div class="seg" data-setting="theme">
-                <button data-v="dark">Sombre</button><button data-v="light">Clair</button><button data-v="auto">Comme Windows</button>
-              </div>
-              <span class="f-k">Couleur</span>
-              <div class="seg" data-setting="accentColor">
-                <button data-v="cover">Celle de la musique</button><button data-v="windows">Celle de Windows</button>
-              </div>
-              <span class="f-hint">« Comme Windows » suit le mode clair ou sombre choisi dans Paramètres › Personnalisation › Couleurs, et change tout seul avec lui.</span>
-              <span class="f-k">Style</span>
-              <div class="seg" data-setting="islandStyle">
-                <button data-v="opaque">Opaque</button><button data-v="glass">Verre</button>
-              </div>
-              <div class="s-sub" data-needs="styleGlass">
-                <span class="s-off-note">Choisis le style Verre pour régler l’opacité.</span>
-                <div class="s-body">
-                  <span class="f-k">Opacité du verre</span>
-                  <div class="seg" data-setting="glassOpacity" data-type="num">
-                    <button data-v="30">30 %</button><button data-v="45">45 %</button><button data-v="60">60 %</button><button data-v="75">75 %</button><button data-v="90">90 %</button>
-                  </div>
+              <h2 class="s-title">Apparence</h2>
+              <div class="s-group">
+                <span class="f-k">Thème</span>
+                <div class="seg" data-setting="theme">
+                  <button data-v="dark">Sombre</button><button data-v="light">Clair</button><button data-v="auto">Comme Windows</button>
                 </div>
-              </div>
-              <label class="sw-row"><span>Halos de couleur animés</span><input type="checkbox" data-setting="halos" /><i class="sw"></i></label>
-              <span class="f-hint">Les lueurs de couleur bougent lentement quand la barre est ouverte ou qu’une musique joue.</span>
-              <label class="sw-row"><span>Protection des écrans OLED</span><input type="checkbox" data-setting="oledShift" /><i class="sw"></i></label>
-              <span class="f-hint">Le contenu de la barre fermée se décale d’un ou deux pixels toutes les 90 s, sans que tu le voies, pour ne pas marquer l’écran.</span>
-            </div>
-
-            <div class="s-panel" data-cat="music" data-needs="widgetMusic">
-              <span class="s-k">Musique</span>
-              <label class="sw-row s-main"><span>Activer la musique</span><input type="checkbox" data-setting="widgetMusic" /><i class="sw"></i></label>
-              <span class="f-hint s-main-hint">Éteint : l’onglet est masqué et rien ne tourne en arrière-plan.</span>
-              <div class="s-body">
-                <label class="sw-row"><span>Priorité au lecteur de musique</span><input type="checkbox" data-setting="musicPriority" /><i class="sw"></i></label>
-                <span class="f-hint">Spotify, Deezer… passent avant le son du navigateur (YouTube, Twitch…).</span>
-                <label class="sw-row"><span>S’ouvrir à chaque nouveau morceau</span><input type="checkbox" data-setting="peekOnTrack" /><i class="sw"></i></label>
-                <div class="s-sub" data-needs="widgetLyrics">
-                  <span class="s-k">Paroles</span>
-                  <label class="sw-row s-main"><span>Afficher les paroles</span><input type="checkbox" data-setting="widgetLyrics" /><i class="sw"></i></label>
-                  <div class="s-body">
-                    <label class="sw-row"><span>Paroles dans la barre fermée</span><input type="checkbox" data-setting="compactLyrics" /><i class="sw"></i></label>
-                    <span class="f-k">Taille</span>
-                    <div class="seg" data-setting="lyricsSize" data-type="num">
-                      <button data-v="14">S</button><button data-v="16">M</button><button data-v="19">L</button><button data-v="22">XL</button>
-                    </div>
-                    <span class="f-k">Police</span>
-                    <div class="chips" data-setting="lyricsFont">
-                      <button data-v="segoe" class="font-segoe">Segoe UI</button>
-                      <button data-v="bahnschrift" class="font-bahnschrift">Bahnschrift</button>
-                      <button data-v="georgia" class="font-georgia">Georgia</button>
-                      <button data-v="consolas" class="font-consolas">Consolas</button>
-                      <button data-v="print" class="font-print">Segoe Print</button>
-                    </div>
-                  </div>
+                <span class="f-k">Couleur</span>
+                <div class="seg" data-setting="accentColor">
+                  <button data-v="cover">Celle de la musique</button><button data-v="windows">Celle de Windows</button>
                 </div>
-              </div>
-            </div>
-
-            <div class="s-panel" data-cat="sound" data-needs="widgetSound">
-              <span class="s-k">Son</span>
-              <label class="sw-row s-main"><span>Activer le son</span><input type="checkbox" data-setting="widgetSound" /><i class="sw"></i></label>
-              <span class="f-hint s-main-hint">Éteint : l’onglet est masqué et rien ne tourne en arrière-plan.</span>
-              <div class="s-body">
-                <span class="f-hint">L’onglet Son règle le volume général et celui de chaque appli. L’indicateur de volume se règle dans HUD &amp; popups.</span>
-              </div>
-            </div>
-
-            <div class="s-panel" data-cat="pc" data-needs="widgetPc">
-              <span class="s-k">PC</span>
-              <label class="sw-row s-main"><span>Activer les infos PC</span><input type="checkbox" data-setting="widgetPc" /><i class="sw"></i></label>
-              <span class="f-hint s-main-hint">Éteint : l’onglet est masqué et rien ne tourne en arrière-plan.</span>
-              <div class="s-body">
-                <span class="f-k">Ping vers</span>
-                <div class="field">
-                  <input type="text" class="ping-host" spellcheck="false" maxlength="253" placeholder="1.1.1.1" aria-label="Serveur pour le ping" />
-                  <span class="f-hint">Serveur ou adresse IP · Entrée pour valider</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="s-panel" data-cat="time" data-needs="widgetTime">
-              <span class="s-k">Temps d’écran</span>
-              <label class="sw-row s-main"><span>Activer le temps d’écran</span><input type="checkbox" data-setting="widgetTime" /><i class="sw"></i></label>
-              <span class="f-hint s-main-hint">Éteint : l’onglet est masqué et rien ne tourne en arrière-plan.</span>
-              <div class="s-body">
-                <span class="f-k">Compté comme absent après</span>
-                <div class="seg" data-setting="idleMinutes" data-type="num">
-                  <button data-v="2">2 min</button><button data-v="5">5 min</button><button data-v="10">10 min</button><button data-v="15">15 min</button>
-                </div>
-                <span class="f-hint">Sans clavier ni souris, sauf si l’appli devant toi joue du son.</span>
-              </div>
-            </div>
-
-            <div class="s-panel" data-cat="twitch" data-needs="widgetTwitch">
-              <span class="s-k">Twitch</span>
-              <label class="sw-row s-main"><span>Activer Twitch</span><input type="checkbox" data-setting="widgetTwitch" /><i class="sw"></i></label>
-              <span class="f-hint s-main-hint">Éteint : l’onglet est masqué et rien ne tourne en arrière-plan.</span>
-              <div class="s-body">
-                <div class="tw-account">
-                  <span class="tw-state">Pas connecté</span>
-                  <button class="tw-btn">Se connecter</button>
-                </div>
-                <div class="tw-code" hidden>Sur la page twitch.tv/activate qui vient de s’ouvrir, entre le code <b></b></div>
-                <span class="f-hint tw-err"></span>
-                <label class="sw-row"><span>Bandeau des stats pendant le live</span><input type="checkbox" data-setting="twitchTicker" /><i class="sw"></i></label>
-                <span class="f-hint">Sous la barre fermée, tes stats défilent une par une tant que tu es en live.</span>
-              </div>
-            </div>
-
-            <div class="s-panel" data-cat="obs" data-needs="widgetObs">
-              <span class="s-k">OBS</span>
-              <label class="sw-row s-main"><span>Activer OBS</span><input type="checkbox" data-setting="widgetObs" /><i class="sw"></i></label>
-              <span class="f-hint s-main-hint">Éteint : l’onglet est masqué et Lagon ne se connecte pas à OBS.</span>
-              <div class="s-body">
-                <div class="tw-account"><span class="ob-state">OBS n’est pas ouvert</span></div>
-                <div class="vl-key-saved ob-pass-saved">
-                  <span>Mot de passe OBS enregistré (chiffré)</span>
-                  <button class="vl-btn ob-clear">Supprimer</button>
-                </div>
-                <div class="field ob-pass-new">
-                  <input type="password" class="text-in ob-pass" spellcheck="false" maxlength="200" autocomplete="off" placeholder="Mot de passe du serveur WebSocket" aria-label="Mot de passe OBS" />
-                  <span class="f-hint">Dans OBS : Outils → Paramètres du serveur WebSocket → coche « Activer le serveur WebSocket », puis « Afficher les informations de connexion » et copie le mot de passe. Colle-le ici puis Entrée.</span>
-                </div>
-                <span class="f-hint ob-err"></span>
-                <label class="sw-row"><span>Pop-ups : début et fin du live, images perdues</span><input type="checkbox" data-setting="obsAlerts" /><i class="sw"></i></label>
-                <label class="sw-row"><span>Icône si le micro OBS est coupé pendant le live</span><input type="checkbox" data-setting="obsMicBadge" /><i class="sw"></i></label>
-              </div>
-            </div>
-
-            <div class="s-panel" data-cat="discord" data-needs="widgetDiscord">
-              <span class="s-k">Discord</span>
-              <label class="sw-row s-main"><span>Activer Discord</span><input type="checkbox" data-setting="widgetDiscord" /><i class="sw"></i></label>
-              <span class="f-hint s-main-hint">Éteint : l’onglet est masqué et Lagon ne se connecte pas à Discord.</span>
-              <div class="s-body">
-                <div class="tw-account">
-                  <span class="dc-state">Pas connecté</span>
-                  <button class="dc-btn">Se connecter</button>
-                </div>
-                <span class="f-hint dc-err"></span>
-                <label class="sw-row"><span>Icône mute / sourdine dans la barre fermée</span><input type="checkbox" data-setting="discordBadge" /><i class="sw"></i></label>
-                <label class="sw-row"><span>Pop-up quand quelqu’un rejoint ou quitte ton vocal</span><input type="checkbox" data-setting="discordVoicePopup" /><i class="sw"></i></label>
-                <label class="sw-row"><span>Pop-up quand on t’envoie un MP</span><input type="checkbox" data-setting="discordDmPopup" /><i class="sw"></i></label>
-                <span class="f-hint">Seulement le nom de la personne : Lagon ne lit et n’affiche jamais le message.</span>
-                <div class="dc-ctl-row" hidden>
-                  <span>Autorise Lagon à couper ton micro et ton son</span>
-                  <button class="vl-btn dc-reauth">Autoriser</button>
-                </div>
-                <span class="f-hint">Couper ou réactiver : les boutons en haut de l’onglet Discord, un clic sur l’icône rouge de la barre fermée (ouverture « Au clic »), ou les raccourcis (Paramètres → Raccourcis).</span>
-                <span class="f-hint">Discord doit être ouvert sur ce PC. Réservé aux testeurs de l’appli Lagon sur Discord.</span>
-              </div>
-            </div>
-
-            <div class="s-panel" data-cat="valorant" data-needs="widgetValorant">
-              <span class="s-k">Valorant</span>
-              <label class="sw-row s-main"><span>Activer Valorant</span><input type="checkbox" data-setting="widgetValorant" /><i class="sw"></i></label>
-              <span class="f-hint s-main-hint">Éteint : l’onglet est masqué et rien ne tourne en arrière-plan.</span>
-              <div class="s-body">
-                <span class="f-k">Riot ID</span>
-                <div class="field">
-                  <input type="text" class="text-in valo-id" spellcheck="false" maxlength="24" placeholder="Pseudo#TAG" aria-label="Riot ID" />
-                  <span class="f-hint">Ton pseudo en jeu avec le # · Entrée pour valider</span>
-                </div>
-                <span class="f-k">Région</span>
-                <div class="seg" data-setting="valoRegion">
-                  <button data-v="eu">EU</button><button data-v="na">NA</button><button data-v="ap">AP</button><button data-v="kr">KR</button><button data-v="br">BR</button><button data-v="latam">LATAM</button>
-                </div>
-                <span class="f-k">Plateforme</span>
-                <div class="seg" data-setting="valoPlatform">
-                  <button data-v="pc">PC</button><button data-v="console">Console</button>
-                </div>
-                <span class="f-k">Clé API HenrikDev</span>
-                <div class="vl-key-saved">
-                  <span>Clé enregistrée (chiffrée sur ce PC)</span>
-                  <button class="vl-btn vl-clear">Supprimer</button>
-                </div>
-                <div class="field vl-key-new">
-                  <input type="password" class="text-in valo-key" spellcheck="false" maxlength="128" autocomplete="off" placeholder="HDEV-…" aria-label="Clé API HenrikDev" />
-                  <span class="f-hint">Colle ta clé puis Entrée · <button class="link vl-get">Obtenir une clé</button></span>
-                </div>
-                <span class="f-hint vl-err"></span>
-                <span class="f-hint">Rang et RR mis à jour toutes les 3 min, en pause quand un jeu est en plein écran. Données : HenrikDev (non officiel, pas lié à Riot Games).</span>
-              </div>
-            </div>
-
-            <div class="s-panel" data-cat="face" data-needs="idleFace">
-              <span class="s-k">Petit visage</span>
-              <label class="sw-row s-main"><span>Activer le petit visage</span><input type="checkbox" data-setting="idleFace" /><i class="sw"></i></label>
-              <span class="f-hint s-main-hint">Éteint : l’heure s’affiche seule quand rien ne joue.</span>
-              <div class="s-body">
+                <span class="f-hint">« Comme Windows » suit le mode clair ou sombre choisi dans Paramètres › Personnalisation › Couleurs, et change tout seul avec lui.</span>
                 <span class="f-k">Style</span>
-                <div class="face-pick" data-setting="faceStyle">
-                  <button data-v="classic"><span class="mini-face" data-look="classic"><span class="face-in"><i class="eye l"></i><i class="eye r"></i><i class="cheek l"></i><i class="cheek r"></i><i class="ear l"></i><i class="ear r"></i><i class="ant"></i><i class="mouth"></i></span></span>Classique</button>
-                  <button data-v="cat"><span class="mini-face" data-look="cat"><span class="face-in"><i class="eye l"></i><i class="eye r"></i><i class="cheek l"></i><i class="cheek r"></i><i class="ear l"></i><i class="ear r"></i><i class="ant"></i><i class="mouth"></i></span></span>Chat</button>
-                  <button data-v="robot"><span class="mini-face" data-look="robot"><span class="face-in"><i class="eye l"></i><i class="eye r"></i><i class="cheek l"></i><i class="cheek r"></i><i class="ear l"></i><i class="ear r"></i><i class="ant"></i><i class="mouth"></i></span></span>Robot</button>
-                  <button data-v="cute"><span class="mini-face" data-look="cute"><span class="face-in"><i class="eye l"></i><i class="eye r"></i><i class="cheek l"></i><i class="cheek r"></i><i class="ear l"></i><i class="ear r"></i><i class="ant"></i><i class="mouth"></i></span></span>Mignon</button>
+                <div class="seg" data-setting="islandStyle">
+                  <button data-v="opaque">Opaque</button><button data-v="glass">Verre</button>
                 </div>
-                <span class="f-k">S’endort après</span>
-                <div class="seg" data-setting="faceSleepSeconds" data-type="num">
-                  <button data-v="20">20 s</button><button data-v="60">1 min</button><button data-v="120">2 min</button><button data-v="300">5 min</button>
+                <div class="s-sub" data-needs="styleGlass">
+                  <span class="s-off-note">Choisis le style Verre pour régler l’opacité.</span>
+                  <div class="s-body">
+                    <span class="f-k">Opacité du verre</span>
+                    <div class="seg" data-setting="glassOpacity" data-type="num">
+                      <button data-v="30">30 %</button><button data-v="45">45 %</button><button data-v="60">60 %</button><button data-v="75">75 %</button><button data-v="90">90 %</button>
+                    </div>
+                  </div>
                 </div>
-                <span class="f-hint">Il glisse au milieu et s’endort, puis revient à côté de l’heure quand tu bouges.</span>
+                <label class="sw-row"><span>Halos de couleur animés</span><input type="checkbox" data-setting="halos" /><i class="sw"></i></label>
+                <span class="f-hint">Les lueurs de couleur bougent lentement quand la barre est ouverte ou qu’une musique joue.</span>
+                <label class="sw-row"><span>Protection des écrans OLED</span><input type="checkbox" data-setting="oledShift" /><i class="sw"></i></label>
+                <span class="f-hint">Le contenu de la barre fermée se décale d’un ou deux pixels toutes les 90 s, sans que tu le voies, pour ne pas marquer l’écran.</span>
+              </div>
+              <div class="s-group" data-needs="idleFace">
+                <span class="s-k">Petit visage</span>
+                <label class="sw-row s-main"><span>Activer le petit visage</span><input type="checkbox" data-setting="idleFace" /><i class="sw"></i></label>
+                <span class="f-hint s-main-hint">Éteint : l’heure s’affiche seule quand rien ne joue.</span>
+                <div class="s-body">
+                  <span class="f-k">Style</span>
+                  <div class="face-pick" data-setting="faceStyle">
+                    <button data-v="classic"><span class="mini-face" data-look="classic"><span class="face-in"><i class="eye l"></i><i class="eye r"></i><i class="cheek l"></i><i class="cheek r"></i><i class="ear l"></i><i class="ear r"></i><i class="ant"></i><i class="mouth"></i></span></span>Classique</button>
+                    <button data-v="cat"><span class="mini-face" data-look="cat"><span class="face-in"><i class="eye l"></i><i class="eye r"></i><i class="cheek l"></i><i class="cheek r"></i><i class="ear l"></i><i class="ear r"></i><i class="ant"></i><i class="mouth"></i></span></span>Chat</button>
+                    <button data-v="robot"><span class="mini-face" data-look="robot"><span class="face-in"><i class="eye l"></i><i class="eye r"></i><i class="cheek l"></i><i class="cheek r"></i><i class="ear l"></i><i class="ear r"></i><i class="ant"></i><i class="mouth"></i></span></span>Robot</button>
+                    <button data-v="cute"><span class="mini-face" data-look="cute"><span class="face-in"><i class="eye l"></i><i class="eye r"></i><i class="cheek l"></i><i class="cheek r"></i><i class="ear l"></i><i class="ear r"></i><i class="ant"></i><i class="mouth"></i></span></span>Mignon</button>
+                  </div>
+                  <span class="f-k">S’endort après</span>
+                  <div class="seg" data-setting="faceSleepSeconds" data-type="num">
+                    <button data-v="20">20 s</button><button data-v="60">1 min</button><button data-v="120">2 min</button><button data-v="300">5 min</button>
+                  </div>
+                  <span class="f-hint">Il glisse au milieu et s’endort, puis revient à côté de l’heure quand tu bouges.</span>
+                </div>
               </div>
             </div>
 
-            <div class="s-panel" data-cat="hud">
-              <span class="s-k">HUD &amp; popups</span>
+            <div class="s-panel" data-cat="modules">
+              <h2 class="s-title">Modules</h2>
+              <span class="f-hint">Allume ceux que tu veux voir. Attrape une ligne par ses petits points et fais-la glisser pour changer l’ordre des onglets. Un module éteint n’a pas d’onglet et rien ne tourne en arrière-plan.</span>
+              <div class="mod-list"></div>
+              <div class="s-group" data-needs="widgetMusic">
+                <span class="s-k">Musique</span>
+                <span class="s-off-note">Module éteint : allume-le dans la liste au-dessus.</span>
+                <div class="s-body">
+                  <label class="sw-row"><span>Priorité au lecteur de musique</span><input type="checkbox" data-setting="musicPriority" /><i class="sw"></i></label>
+                  <span class="f-hint">Spotify, Deezer… passent avant le son du navigateur (YouTube, Twitch…).</span>
+                  <label class="sw-row"><span>S’ouvrir à chaque nouveau morceau</span><input type="checkbox" data-setting="peekOnTrack" /><i class="sw"></i></label>
+                  <div class="s-sub" data-needs="widgetLyrics">
+                    <label class="sw-row s-main"><span>Afficher les paroles</span><input type="checkbox" data-setting="widgetLyrics" /><i class="sw"></i></label>
+                    <div class="s-body">
+                      <label class="sw-row"><span>Paroles dans la barre fermée</span><input type="checkbox" data-setting="compactLyrics" /><i class="sw"></i></label>
+                      <span class="f-k">Taille des paroles</span>
+                      <div class="seg" data-setting="lyricsSize" data-type="num">
+                        <button data-v="14">S</button><button data-v="16">M</button><button data-v="19">L</button><button data-v="22">XL</button>
+                      </div>
+                      <span class="f-k">Police</span>
+                      <div class="chips" data-setting="lyricsFont">
+                        <button data-v="segoe" class="font-segoe">Segoe UI</button>
+                        <button data-v="bahnschrift" class="font-bahnschrift">Bahnschrift</button>
+                        <button data-v="georgia" class="font-georgia">Georgia</button>
+                        <button data-v="consolas" class="font-consolas">Consolas</button>
+                        <button data-v="print" class="font-print">Segoe Print</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="s-group" data-needs="widgetPc">
+                <span class="s-k">PC</span>
+                <span class="s-off-note">Module éteint : allume-le dans la liste au-dessus.</span>
+                <div class="s-body">
+                  <span class="f-k">Ping vers</span>
+                  <div class="field">
+                    <input type="text" class="ping-host" spellcheck="false" maxlength="253" placeholder="1.1.1.1" aria-label="Serveur pour le ping" />
+                    <span class="f-hint">Serveur ou adresse IP · Entrée pour valider</span>
+                  </div>
+                </div>
+              </div>
+              <div class="s-group" data-needs="widgetTime">
+                <span class="s-k">Temps d’écran</span>
+                <span class="s-off-note">Module éteint : allume-le dans la liste au-dessus.</span>
+                <div class="s-body">
+                  <span class="f-k">Compté comme absent après</span>
+                  <div class="seg" data-setting="idleMinutes" data-type="num">
+                    <button data-v="2">2 min</button><button data-v="5">5 min</button><button data-v="10">10 min</button><button data-v="15">15 min</button>
+                  </div>
+                  <span class="f-hint">Sans clavier ni souris, sauf si l’appli devant toi joue du son.</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="s-panel" data-cat="accounts">
+              <h2 class="s-title">Connexions</h2>
+              <div class="s-group" data-needs="widgetTwitch">
+                <span class="s-k">Twitch</span>
+                <label class="sw-row s-main"><span>Activer Twitch</span><input type="checkbox" data-setting="widgetTwitch" /><i class="sw"></i></label>
+                <div class="s-body">
+                  <div class="tw-account">
+                    <span class="tw-state">Pas connecté</span>
+                    <button class="tw-btn">Se connecter</button>
+                  </div>
+                  <div class="tw-code" hidden>Sur la page twitch.tv/activate qui vient de s’ouvrir, entre le code <b></b></div>
+                  <span class="f-hint tw-err"></span>
+                  <label class="sw-row"><span>Bandeau des stats pendant le live</span><input type="checkbox" data-setting="twitchTicker" /><i class="sw"></i></label>
+                  <span class="f-hint">Sous la barre fermée, tes stats défilent une par une tant que tu es en live.</span>
+                </div>
+              </div>
+
+              <div class="s-group" data-needs="widgetObs">
+                <span class="s-k">OBS</span>
+                <label class="sw-row s-main"><span>Activer OBS</span><input type="checkbox" data-setting="widgetObs" /><i class="sw"></i></label>
+                <div class="s-body">
+                  <div class="tw-account"><span class="ob-state">OBS n’est pas ouvert</span></div>
+                  <div class="vl-key-saved ob-pass-saved">
+                    <span>Mot de passe OBS enregistré (chiffré)</span>
+                    <button class="vl-btn ob-clear">Supprimer</button>
+                  </div>
+                  <div class="field ob-pass-new">
+                    <input type="password" class="text-in ob-pass" spellcheck="false" maxlength="200" autocomplete="off" placeholder="Mot de passe du serveur WebSocket" aria-label="Mot de passe OBS" />
+                    <span class="f-hint">Dans OBS : Outils → Paramètres du serveur WebSocket → coche « Activer le serveur WebSocket », puis « Afficher les informations de connexion » et copie le mot de passe. Colle-le ici puis Entrée.</span>
+                  </div>
+                  <span class="f-hint ob-err"></span>
+                  <label class="sw-row"><span>Pop-ups : début et fin du live, images perdues</span><input type="checkbox" data-setting="obsAlerts" /><i class="sw"></i></label>
+                  <label class="sw-row"><span>Icône si le micro OBS est coupé pendant le live</span><input type="checkbox" data-setting="obsMicBadge" /><i class="sw"></i></label>
+                </div>
+              </div>
+
+              <div class="s-group" data-needs="widgetDiscord">
+                <span class="s-k">Discord</span>
+                <label class="sw-row s-main"><span>Activer Discord</span><input type="checkbox" data-setting="widgetDiscord" /><i class="sw"></i></label>
+                <div class="s-body">
+                  <div class="tw-account">
+                    <span class="dc-state">Pas connecté</span>
+                    <button class="dc-btn">Se connecter</button>
+                  </div>
+                  <span class="f-hint dc-err"></span>
+                  <label class="sw-row"><span>Icône mute / sourdine dans la barre fermée</span><input type="checkbox" data-setting="discordBadge" /><i class="sw"></i></label>
+                  <label class="sw-row"><span>Pop-up quand quelqu’un rejoint ou quitte ton vocal</span><input type="checkbox" data-setting="discordVoicePopup" /><i class="sw"></i></label>
+                  <label class="sw-row"><span>Pop-up quand on t’envoie un MP</span><input type="checkbox" data-setting="discordDmPopup" /><i class="sw"></i></label>
+                  <span class="f-hint">Seulement le nom de la personne : Lagon ne lit et n’affiche jamais le message.</span>
+                  <div class="dc-ctl-row" hidden>
+                    <span>Autorise Lagon à couper ton micro et ton son</span>
+                    <button class="vl-btn dc-reauth">Autoriser</button>
+                  </div>
+                  <span class="f-hint">Couper ou réactiver : les boutons en haut de l’onglet Discord, un clic sur l’icône rouge de la barre fermée (ouverture « Au clic »), ou les raccourcis (Réglages › Raccourcis).</span>
+                  <span class="f-hint">Discord doit être ouvert sur ce PC. Réservé aux testeurs de l’appli Lagon sur Discord.</span>
+                </div>
+              </div>
+
+              <div class="s-group" data-needs="widgetValorant">
+                <span class="s-k">Valorant</span>
+                <label class="sw-row s-main"><span>Activer Valorant</span><input type="checkbox" data-setting="widgetValorant" /><i class="sw"></i></label>
+                <div class="s-body">
+                  <span class="f-k">Riot ID</span>
+                  <div class="field">
+                    <input type="text" class="text-in valo-id" spellcheck="false" maxlength="24" placeholder="Pseudo#TAG" aria-label="Riot ID" />
+                    <span class="f-hint">Ton pseudo en jeu avec le # · Entrée pour valider</span>
+                  </div>
+                  <span class="f-k">Région</span>
+                  <div class="seg" data-setting="valoRegion">
+                    <button data-v="eu">EU</button><button data-v="na">NA</button><button data-v="ap">AP</button><button data-v="kr">KR</button><button data-v="br">BR</button><button data-v="latam">LATAM</button>
+                  </div>
+                  <span class="f-k">Plateforme</span>
+                  <div class="seg" data-setting="valoPlatform">
+                    <button data-v="pc">PC</button><button data-v="console">Console</button>
+                  </div>
+                  <span class="f-k">Clé API HenrikDev</span>
+                  <div class="vl-key-saved">
+                    <span>Clé enregistrée (chiffrée sur ce PC)</span>
+                    <button class="vl-btn vl-clear">Supprimer</button>
+                  </div>
+                  <div class="field vl-key-new">
+                    <input type="password" class="text-in valo-key" spellcheck="false" maxlength="128" autocomplete="off" placeholder="HDEV-…" aria-label="Clé API HenrikDev" />
+                    <span class="f-hint">Colle ta clé puis Entrée · <button class="link vl-get">Obtenir une clé</button></span>
+                  </div>
+                  <span class="f-hint vl-err"></span>
+                  <span class="f-hint">Rang et RR mis à jour toutes les 3 min, en pause quand un jeu est en plein écran. Données : HenrikDev (non officiel, pas lié à Riot Games).</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="s-panel" data-cat="popups">
+              <h2 class="s-title">Pop-ups</h2>
               <span class="f-hint">S’affichent un instant dans la barre fermée.</span>
               <div class="w-grid">
                 <label class="sw-row"><span>Volume</span><input type="checkbox" data-setting="volumeOsd" /><i class="sw"></i></label>
@@ -492,10 +489,11 @@
                 <label class="sw-row"><span>Wi-Fi / réseau</span><input type="checkbox" data-setting="hudWifi" /><i class="sw"></i></label>
                 <label class="sw-row"><span>Casque Bluetooth</span><input type="checkbox" data-setting="hudBluetooth" /><i class="sw"></i></label>
               </div>
+              <span class="f-hint">Les pop-ups de Discord et d’OBS se règlent dans Connexions.</span>
             </div>
 
             <div class="s-panel" data-cat="keys">
-              <span class="s-k">Raccourcis</span>
+              <h2 class="s-title">Raccourcis</h2>
               <div class="hk-list">
                 <div class="hk-row" data-hk="focusHotkey"><span>Mode focus</span><button class="hk-btn"></button></div>
                 <div class="hk-row" data-hk="discordMuteHotkey"><span>Discord : couper / réactiver le micro</span><button class="hk-btn"></button></div>
@@ -506,20 +504,24 @@
               <span class="f-hint hk-err"></span>
               <div><button class="vl-btn hk-reset">Tout réinitialiser</button></div>
             </div>
-
-            <div class="s-panel" data-cat="perf">
-              <span class="s-k">Performance</span>
-              <label class="sw-row"><span>Masquer et mettre en pause en plein écran</span><input type="checkbox" data-setting="hideInFullscreen" /><i class="sw"></i></label>
-              <span class="f-hint">Jeu, vidéo ou navigateur en plein écran : Lagon disparaît et tout s’arrête (seul le temps d’écran continue de compter).</span>
-              <label class="sw-row"><span>Accélération par la carte graphique</span><input type="checkbox" data-setting="gpuAcceleration" /><i class="sw"></i></label>
-              <span class="f-hint">Désactivée : environ 85 Mo de mémoire en moins et la carte graphique reste au repos, pour la même fluidité.</span>
-              <div class="restart-row" hidden>
-                <span>Redémarre Lagon pour appliquer ce changement.</span>
-                <button class="restart">Redémarrer</button>
-              </div>
-            </div>
           </div>
         </section>
+      </div>
+
+      <!-- first launch: pick your modules (again from Settings > Général) -->
+      <div class="welcome">
+        <div class="wl-head">
+          <span class="mini-face wl-face" data-look="classic"><span class="face-in"><i class="eye l"></i><i class="eye r"></i><i class="cheek l"></i><i class="cheek r"></i><i class="ear l"></i><i class="ear r"></i><i class="ant"></i><i class="mouth"></i></span></span>
+          <div class="wl-head-txt">
+            <div class="wl-title">Bienvenue dans Lagon</div>
+            <div class="wl-sub">Choisis ce que tu veux voir dans la barre. Tu pourras tout changer plus tard dans les réglages.</div>
+          </div>
+        </div>
+        <div class="wl-grid"></div>
+        <div class="wl-foot">
+          <span class="f-hint wl-note">Twitch, OBS, Discord et Valorant te demanderont ensuite de te connecter.</span>
+          <button class="wl-go">C’est parti</button>
+        </div>
       </div>
     </div>
   </div>

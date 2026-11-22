@@ -118,6 +118,8 @@ body[data-attach="floating"] #island.focus:not(.open) { border-radius: 6px; }
   height: var(--open-h);
   border-radius: 0 0 30px 30px;
 }
+/* settings and welcome screen: the big card (keep in sync with sendSizes and WIN_W / WIN_H in main.rs) */
+#island.big { --open-w: 720px; --open-h: 420px; }
 
 /* album-colour glows blended into the black. Each glow is a layer 1.5x the island (inset -25%,
    so moving it never shows an edge); with the "halos" option animFrame() in app.js drifts them
@@ -475,29 +477,50 @@ input[type="range"]:hover::-webkit-slider-thumb, input[type="range"]:active::-we
 .gear svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; transition: transform 0.5s var(--spring); }
 .gear.on svg { transform: rotate(90deg); }
 
-/* category list on the left, the chosen category's options on the right */
-.settings { display: grid; grid-template-columns: 116px 1fr; gap: 16px; padding: 2px 16px 14px 18px; }
-.s-nav { display: flex; flex-direction: column; gap: 1px; padding-right: 12px; border-right: 1px solid rgba(var(--fg), 0.08); overflow-y: auto; }
+/* osu!-like: the categories on the left, all their options in one list on the right; the
+   category being read lights up while the list scrolls (spyCategory in app.js) */
+.settings { display: grid; grid-template-columns: 148px 1fr; gap: 18px; padding: 6px 12px 14px 16px; }
+.s-nav { display: flex; flex-direction: column; gap: 3px; padding: 4px 12px 0 0; border-right: 1px solid rgba(var(--fg), 0.08); }
 .s-nav button {
-  height: 18px;
+  position: relative;
+  height: 34px;
   flex: none;
-  padding: 0 10px;
-  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 10px 0 13px;
+  border-radius: 9px;
   text-align: left;
-  font-size: 12px;
+  font-size: 12.5px;
   color: var(--dim);
   white-space: nowrap;
   transition: background 0.2s var(--ease), color 0.2s var(--ease);
 }
+.s-nav svg { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.s-nav button::before {
+  content: "";
+  position: absolute;
+  left: 3px;
+  top: 9px;
+  bottom: 9px;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--accent);
+  opacity: 0;
+  transform: scaleY(0.3);
+  transition: opacity 0.25s var(--ease), transform 0.3s var(--spring);
+}
 .s-nav button:hover { color: var(--text); background: rgba(var(--fg), 0.06); }
-.s-nav button.on { color: var(--text); background: rgba(var(--fg), 0.14); font-weight: 600; }
-.s-nav button.dim:not(.on) { color: var(--faint); }
-.s-panels { position: relative; min-width: 0; min-height: 0; }
-.s-panel { display: none; position: absolute; inset: 0; flex-direction: column; gap: 6px; overflow-y: auto; padding-right: 6px; }
-.s-panel.on { display: flex; animation: panel-in 0.28s var(--ease); }
-@keyframes panel-in { from { opacity: 0; transform: translateX(6px); } }
-.s-panel::-webkit-scrollbar { width: 4px; }
-.s-panel::-webkit-scrollbar-thumb { background: rgba(var(--fg), 0.18); border-radius: 2px; }
+.s-nav button.on { color: var(--text); background: rgba(var(--fg), 0.12); font-weight: 600; }
+.s-nav button.on::before { opacity: 1; transform: none; }
+.s-nav button.on svg { color: var(--accent); }
+.s-panels { position: relative; min-width: 0; min-height: 0; overflow-x: hidden; overflow-y: auto; padding-right: 10px; }
+.s-panels::-webkit-scrollbar { width: 4px; }
+.s-panels::-webkit-scrollbar-thumb { background: rgba(var(--fg), 0.18); border-radius: 2px; }
+.s-panel { display: flex; flex-direction: column; gap: 6px; padding: 4px 0 22px; }
+.s-panel + .s-panel { border-top: 1px solid rgba(var(--fg), 0.08); padding-top: 16px; }
+.s-title { font-size: 17px; font-weight: 650; letter-spacing: -0.01em; margin-bottom: 2px; }
+.s-group { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
 .s-k { font-size: 10.5px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--faint); margin-bottom: 1px; }
 .s-body, .s-sub { display: flex; flex-direction: column; gap: 6px; }
 .s-sub { margin-top: 6px; }
@@ -775,10 +798,69 @@ body[data-style="glass"] #island.playing {
 .restart-row[hidden] { display: none; }
 .restart { height: 24px; padding: 0 12px; border-radius: 7px; background: var(--warn); color: var(--on-accent); font-size: 11.5px; font-weight: 600; }
 
-/* 8 categories fit without scrolling; if the window ever gets smaller, a thin scrollbar */
-.s-nav::-webkit-scrollbar { width: 3px; }
-.s-nav::-webkit-scrollbar-thumb { background: rgba(var(--fg), 0.18); border-radius: 2px; }
-.s-nav::-webkit-scrollbar-button { display: none; }
+/* ---------- Settings > Modules: on / off + order (dragged by the dots) ---------- */
+.mod-list { display: flex; flex-direction: column; gap: 4px; margin-top: 4px; }
+.mod-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 40px;
+  padding: 0 10px 0 4px;
+  border-radius: 10px;
+  background: rgba(var(--fg), 0.05);
+  transition: translate 0.22s var(--ease), background 0.2s var(--ease), box-shadow 0.2s var(--ease);
+}
+.mod-row .sw-row { margin-left: auto; }
+.mod-grip { width: 22px; height: 30px; display: grid; place-items: center; flex: none; color: var(--faint); cursor: grab; touch-action: none; }
+.mod-grip:hover { color: var(--text); }
+.mod-grip svg { width: 15px; height: 15px; fill: currentColor; stroke: none; }
+.mod-ic { width: 26px; height: 26px; flex: none; display: grid; place-items: center; border-radius: 8px; background: rgba(var(--fg), 0.08); color: var(--text); }
+.mod-ic svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.mod-ic svg.filled { fill: currentColor; stroke: none; width: 13px; height: 13px; }
+.mod-txt { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
+.mod-txt b { font-size: 12.5px; font-weight: 600; }
+.mod-txt span { font-size: 10.5px; color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mod-list.sorting, .mod-list.sorting * { cursor: grabbing !important; }
+.mod-list.settle .mod-row { transition: none; }
+.mod-row.dragging { position: relative; z-index: 1; transition: background 0.2s var(--ease), box-shadow 0.2s var(--ease); background: rgba(var(--fg), 0.14); box-shadow: 0 6px 18px var(--drop); }
+
+/* ---------- welcome screen (first launch) ---------- */
+.welcome { display: none; position: absolute; inset: 0; z-index: 5; flex-direction: column; gap: 14px; padding: 26px 30px 22px; }
+#island.wl-on .welcome { display: flex; animation: wl-in 0.4s var(--ease); }
+@keyframes wl-in { from { opacity: 0; transform: translateY(6px); } }
+#island.wl-on .tabs, #island.wl-on .gear, #island.wl-on .pages { visibility: hidden; }
+.wl-head { display: flex; align-items: center; gap: 16px; }
+.wl-face { flex: none; scale: 1.3; margin: 0 8px 0 6px; }
+.wl-head-txt { min-width: 0; }
+.wl-title { font-size: 21px; font-weight: 650; letter-spacing: -0.01em; }
+.wl-sub { margin-top: 2px; font-size: 12.5px; color: var(--dim); }
+.wl-grid { flex: 1; display: grid; grid-template-columns: repeat(4, 1fr); grid-auto-rows: 1fr; gap: 8px; min-height: 0; }
+.wl-card {
+  position: relative;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 14px;
+  text-align: left;
+  background: rgba(var(--fg), 0.05);
+  border: 1px solid rgba(var(--fg), 0.06);
+  color: var(--dim);
+  transition: background 0.2s var(--ease), border-color 0.2s var(--ease), color 0.2s var(--ease);
+}
+.wl-card:hover { background: rgba(var(--fg), 0.09); }
+.wl-card.on { color: var(--text); background: color-mix(in srgb, var(--accent) 16%, transparent); border-color: color-mix(in srgb, var(--accent) 55%, transparent); }
+.wl-card .mod-txt { max-width: 100%; }
+.wl-card .mod-txt span { white-space: normal; }
+.wl-check { position: absolute; top: 12px; right: 12px; width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid rgba(var(--fg), 0.25); transition: background 0.2s var(--ease), border-color 0.2s var(--ease); }
+.wl-card.on .wl-check { background: var(--accent); border-color: var(--accent); }
+.wl-card.on .wl-check::after { content: ""; position: absolute; left: 4.5px; top: 1.5px; width: 4px; height: 8px; border: solid var(--on-accent); border-width: 0 2px 2px 0; transform: rotate(45deg); }
+.wl-foot { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.wl-go { height: 34px; padding: 0 20px; border-radius: 10px; flex: none; background: var(--accent); color: var(--on-accent); font-size: 13px; font-weight: 650; }
+.wl-go:hover { filter: brightness(1.08); }
 
 /* ---------- Twitch ---------- */
 .tabs button { position: relative; }
@@ -798,9 +880,8 @@ body[data-style="glass"] #island.playing {
 .tw-code b { color: var(--text); font-size: 15px; letter-spacing: 0.08em; margin-left: 4px; }
 .tw-err { color: var(--warn); }
 
-/* a category's own on/off switch, at the top of its panel */
+/* a module's own on/off switch, at the top of its group */
 .sw-row.s-main { padding: 3px 10px; border-radius: 9px; background: rgba(var(--fg), 0.06); font-weight: 600; }
-.s-panel { overflow-x: hidden; } /* never a horizontal scrollbar */
 .s-main-hint { margin-top: -2px; margin-bottom: 4px; }
 .s-sub > .sw-row.s-main { margin-top: 2px; }
 

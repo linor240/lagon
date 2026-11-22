@@ -41,7 +41,8 @@ shotTabs.forEach((b) => b.addEventListener('click', () => {
 // load the other pictures ahead so switching is instant
 window.addEventListener('load', () => shotTabs.forEach((b) => { new Image().src = `img/${b.dataset.shot}.png`; }));
 
-// The demo is 620 px wide: shrink it on narrow screens
+// The open card is 620 px wide with its shadow (the frame is 800 px for the big settings card):
+// shrink it on narrow screens
 const wrap = document.querySelector('.demo-wrap');
 const screenEl = document.querySelector('.screen');
 const fit = () => wrap.style.setProperty('--s', Math.min(1, (screenEl.clientWidth - 8) / 620));
