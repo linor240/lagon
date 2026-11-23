@@ -22,6 +22,10 @@ let winTheme = null; // Windows' { light, accent: "#rrggbb" } (null in the brows
 let coverPal = null; // hues of the current artwork (see pickAccent), null = greyscale / none yet
 let welcomeOn = false; // the first-launch screen is shown (the card stays open, big)
 let tabOrderKey = ''; // tab order applied last (see applyTabOrder)
+let game = null; // the mini-game ({ sync }), set up further down
+let fpsNow = null; // last FPS reading from the helper ({state, fps, app})
+let fpsAccess = null; // may this Windows account read the FPS (null: not asked yet)
+let fpsGrant = null; // answer to "Autoriser les FPS": asking, ok, already, cancelled, error
 // replaced by the saved settings as soon as the main process answers
 let settings = {
   openMode: 'hover', position: 'center', peekOnTrack: true, compactLyrics: true, volumeOsd: true, idleFace: true, faceSleepSeconds: 120,
@@ -98,7 +102,7 @@ function peek() {
 
 // ---------- pages ----------
 // in the tabs' order (applyTabOrder rearranges it in place); settings always last
-const PAGES = ['music', 'sound', 'pc', 'time', 'twitch', 'obs', 'valorant', 'discord', 'settings'];
+const PAGES = ['music', 'sound', 'pc', 'time', 'twitch', 'obs', 'valorant', 'discord', 'game', 'settings'];
 let page = 'music';
 let userPage = 'music'; // the page the user picked last; peeks and settings don't change it
 const pagesEl = $('.pages');
@@ -121,6 +125,7 @@ function setPage(name, instant = false, byUser = true) {
   syncBig();
   if (instant) requestAnimationFrame(() => pagesEl.classList.remove('instant'));
   if (name === 'settings') renderDisplays(); // screens may have been plugged in or out
+  if (name === 'settings' && settings.fpsCounter) window.lagon.sys('fpscheck');
   syncStats();
 }
 tabs.forEach((t) => t.addEventListener('click', () => setPage(t.dataset.page)));
@@ -157,9 +162,18 @@ gear.addEventListener('click', () => {
 // PC stats are only collected while the PC page is on screen
 // (querying the NVIDIA card would otherwise keep it awake on a laptop).
 let statsOn = false;
+let fpsOn = false; // the helper counts frames (FPS counter on and shown)
 let usageTimer = null; // refreshes the screen time page while it is shown
 function syncStats() {
   syncUsage();
+  if (game) game.sync();
+  const fpsPinned = !!(settings.fpsCounter && settings.barFps) && !settings.focusMode && !paused;
+  const fpsWant = !!settings.fpsCounter && !paused && ((island.classList.contains('open') && page === 'pc') || fpsPinned);
+  if (fpsWant !== fpsOn) {
+    fpsOn = fpsWant;
+    if (!fpsWant) fpsNow = null;
+    window.lagon.sys(`fps ${fpsWant ? 1 : 0}`);
+  }
   const pinned = !!(settings.barCpu || settings.barGpu || settings.barTemp || settings.barPing) && !settings.focusMode && !paused;
   const want = (island.classList.contains('open') && page === 'pc') || pinned;
   if (want === statsOn) return;
@@ -891,6 +905,7 @@ const MODULES = [
   ['obs', 'widgetObs', 'OBS', 'Live, débit et micro'],
   ['valorant', 'widgetValorant', 'Valorant', 'Rang, RR et dernier match'],
   ['discord', 'widgetDiscord', 'Discord', 'Ton vocal, micro et sourdine'],
+  ['game', 'widgetGame', 'Jeu', 'Mini-jeu à une touche'],
 ];
 const ACCOUNT_WIDGETS = ['widgetTwitch', 'widgetObs', 'widgetDiscord', 'widgetValorant'];
 const GRIP_SVG = '<svg viewBox="0 0 24 24"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg>';
@@ -1026,6 +1041,7 @@ $('.wl-again').addEventListener('click', startWelcome);
 const pingInput = $('.ping-host');
 const HOST_RE = /^[A-Za-z0-9.:-]{1,253}$/;
 
+let fpsWasOn = false;
 function applySettings(s) {
   if (!s) return;
   settings = s;
@@ -1061,6 +1077,9 @@ function applySettings(s) {
   island.classList.toggle('focus', !!s.focusMode);
   if (typeof renderDiscord === 'function') renderDiscord();
   if (typeof renderHotkeys === 'function') renderHotkeys();
+  if (s.fpsCounter && !fpsWasOn && settingsLoaded) window.lagon.sys('fpscheck');
+  fpsWasOn = !!s.fpsCounter;
+  if (typeof renderFps === 'function') renderFps();
   if (typeof renderBarStats === 'function') renderBarStats();
   if (typeof syncStats === 'function') syncStats();
   if (s.focusMode) { hideOsd(); if (island.classList.contains('open') && !hovering && !welcomeOn) setOpen(false); }
@@ -1220,7 +1239,7 @@ function syncFace() {
 let faceSyncTimer = setInterval(syncFace, 250);
 
 // ---------- widgets on / off ----------
-const WIDGET_OF_PAGE = { music: 'widgetMusic', sound: 'widgetSound', pc: 'widgetPc', time: 'widgetTime', twitch: 'widgetTwitch', valorant: 'widgetValorant', discord: 'widgetDiscord', obs: 'widgetObs' };
+const WIDGET_OF_PAGE = { music: 'widgetMusic', sound: 'widgetSound', pc: 'widgetPc', time: 'widgetTime', twitch: 'widgetTwitch', valorant: 'widgetValorant', discord: 'widgetDiscord', obs: 'widgetObs', game: 'widgetGame' };
 const pageEnabled = (name) => !WIDGET_OF_PAGE[name] || !!settings[WIDGET_OF_PAGE[name]];
 
 function applyWidgets() {
@@ -1343,6 +1362,7 @@ window.lagon.onPaused((on) => {
     tick();
     syncFace();
   }
+  syncStats(); // stats, FPS and the mini-game stop while hidden
 });
 
 $('.restart').addEventListener('click', () => window.lagon.relaunch());
@@ -1852,6 +1872,7 @@ function renderBarStats() {
   if (settings.barGpu) items.push(['GPU', s.gpu >= 0 ? `${s.gpu}%` : '–']);
   if (settings.barTemp) items.push(['', s.gpuTemp > 0 ? `${s.gpuTemp}°` : '–°']);
   if (settings.barPing) items.push(['', s.ping >= 0 ? `${s.ping} ms` : '– ms']);
+  if (settings.barFps && settings.fpsCounter) items.push(['FPS', fpsNow && fpsNow.state === 'ok' && fpsNow.fps >= 0 ? String(fpsNow.fps) : '–']);
   if (settings.barFollowers) {
     const f = tw && tw.stats && tw.stats.followers;
     items.push(['♥', f != null ? Number(f).toLocaleString('fr-FR') : '–']);
@@ -1872,13 +1893,72 @@ function renderBarStats() {
     island.style.setProperty('--xw', xw + 'px');
     sendSizes(island.classList.contains('idle'));
   }
-  settingsPage.querySelectorAll('.bar-stats button').forEach((b) => b.classList.toggle('on', !!settings[b.dataset.k]));
+  // FPS needs the FPS counter: lit only when both are on
+  settingsPage.querySelectorAll('.bar-stats button').forEach((b) => b.classList.toggle('on', !!settings[b.dataset.k] && (b.dataset.k !== 'barFps' || !!settings.fpsCounter)));
 }
-settingsPage.querySelectorAll('.bar-stats button').forEach((b) => b.addEventListener('click', () => {
-  window.lagon.setSetting(b.dataset.k, !settings[b.dataset.k]).then(applySettings);
+settingsPage.querySelectorAll('.bar-stats button').forEach((b) => b.addEventListener('click', async () => {
+  const k = b.dataset.k;
+  if (k === 'barFps' && !(settings.barFps && settings.fpsCounter)) {
+    // one click is enough: the FPS chip also switches the FPS counter on
+    if (!settings.fpsCounter) await window.lagon.setSetting('fpsCounter', true).then(applySettings);
+    window.lagon.setSetting('barFps', true).then(applySettings);
+    return;
+  }
+  window.lagon.setSetting(k, !settings[k]).then(applySettings);
 }));
 window.lagon.onStats((s) => { barSys = s; if (island.classList.contains('has-stats')) renderBarStats(); });
 window.lagon.onTwitchStats(() => renderBarStats());
+
+// ---------- FPS counter (PC tile, closed bar, Réglages › Modules › PC) ----------
+// The helper counts the frames Windows sees the app in front present (ETW, never the game itself).
+// Windows only lets an admin or a member of "Performance Log Users" read them: one "Oui" (UAC) and a
+// new Windows session, once.
+// the status and the button exist twice: Modules › PC, and under the bar chips (Général)
+const fpsStatus = [...document.querySelectorAll('.fps-status')];
+const fpsGrantRow = [...document.querySelectorAll('.fps-grant-row')];
+function renderFps() {
+  const on = !!settings.fpsCounter;
+  $('.page.pc').classList.toggle('with-fps', on);
+  const f = fpsNow;
+  if (on) {
+    const denied = fpsAccess === false || (f && f.state === 'denied');
+    let value = null, sub = '';
+    if (f && f.state === 'ok' && f.fps >= 0) { value = [f.fps, '']; sub = f.app || 'appli au premier plan'; }
+    else if (denied) sub = fpsGrant === 'ok' || fpsGrant === 'already' ? 'ferme ta session Windows' : 'à autoriser (Réglages)';
+    else if (f && f.state === 'error') sub = 'indisponible';
+    else sub = f ? 'aucun jeu au premier plan' : ' ';
+    setTile('fps', value, sub, value ? Math.min(1, f.fps / 240) : 0);
+  }
+  // settings: what Windows allows, and the button to ask for it
+  let text = '';
+  let button = false;
+  if (fpsGrant === 'ok' || fpsGrant === 'already') text = 'C’est fait ! Ferme ta session Windows et rouvre-la une fois (ou redémarre le PC) : les FPS s’afficheront ensuite.';
+  else if (fpsAccess === true) text = 'Autorisé par Windows : les FPS s’affichent dans l’onglet PC, et dans la barre fermée si tu choisis « FPS » (Général › Barre).';
+  else if (fpsAccess === false) {
+    button = true;
+    text = fpsGrant === 'cancelled' ? 'Annulé. Tu peux réessayer quand tu veux.'
+      : fpsGrant === 'error' ? 'Ça n’a pas marché. Réessaie, ou demande à un compte administrateur de ce PC.'
+      : 'Windows doit d’abord autoriser ton compte à lire ces mesures : une fenêtre Windows te demandera « Oui » une seule fois, puis il faudra fermer ta session et la rouvrir.';
+  }
+  fpsStatus.forEach((el) => { el.textContent = text; el.hidden = !text; });
+  fpsGrantRow.forEach((el) => { el.hidden = !button; });
+  // under the bar chips: only while FPS is chosen there and Windows still has to allow it
+  $('.fps-bar-note').hidden = !(on && settings.barFps && fpsAccess !== true && text);
+}
+document.querySelectorAll('.fps-grant').forEach((b) => b.addEventListener('click', () => {
+  fpsGrant = 'asking';
+  fpsStatus.forEach((el) => { el.textContent = 'Réponds « Oui » dans la fenêtre de Windows…'; el.hidden = false; });
+  fpsGrantRow.forEach((el) => { el.hidden = true; });
+  window.lagon.sys('fpsgrant');
+}));
+if (window.lagon.onFps) window.lagon.onFps((m) => {
+  if (!m) return;
+  if (m.t === 'fpsaccess') fpsAccess = !!m.ok;
+  else if (m.t === 'fpsgrant') fpsGrant = m.result;
+  else if (m.t === 'fps') { fpsNow = m; if (m.state === 'ok') fpsAccess = true; else if (m.state === 'denied') fpsAccess = false; }
+  renderFps();
+  if (m.t === 'fps' && island.classList.contains('has-stats')) renderBarStats();
+});
 
 // ---------- shortcuts (Settings > Shortcuts) ----------
 // Click one, then press the keys: Ctrl / Alt / Shift + a letter, a digit or F1–F12.
@@ -1945,3 +2025,274 @@ $('.hk-reset').addEventListener('click', async () => {
 });
 window.lagon.onHotkeys((st) => { if (st) { hkState = st; renderHotkeys(); } });
 Promise.resolve(window.lagon.hotkeysState && window.lagon.hotkeysState()).then((st) => { if (st) { hkState = st; renderHotkeys(); } });
+
+// ---------- mini-game: "Saut de gravité" (one key, endless) ----------
+// The little face runs along the card; a click or Space sends it from the floor to the ceiling
+// (and back) over the spikes. Faster and faster. Drawn on a canvas, only while it is played on
+// screen: leaving the tab, closing the bar or a fullscreen app pauses it (no frame drawn then).
+{
+  const canvas = $('.gm-canvas');
+  const ctx = canvas.getContext('2d');
+  const gmScore = $('.gm-score'), gmBest = $('.gm-best'), gmMsg = $('.gm-msg'), gmTitle = $('.gm-title'), gmSub = $('.gm-sub');
+  const SIZE = 22, PAD = 10, PX = 64;          // player size, floor / ceiling margin, player x
+  const GRAV = 2700, SPEED0 = 230, SPEEDMAX = 560, ACCEL = 7;
+  let W = 0, H = 0, colors = null;
+  let st = 'ready', raf = 0, last = 0, keyboardOn = false;
+  let y = 0, vy = 0, dir = 1, grounded = true, buffered = 0, speed = SPEED0, dist = 0, t = 0;
+  let spikes = [], nextAt = 0, lastSide = 1, trail = [], deadAt = 0, blink = 0, newBest = false;
+
+  const floorY = () => H - PAD - SIZE;   // top of the player when it stands on the floor
+  const ceilY = () => PAD;               // ... when it hangs from the ceiling
+  const score = () => Math.floor(dist / 12);
+
+  function readColors() {
+    const cs = getComputedStyle(island);
+    const v = (k, d) => (cs.getPropertyValue(k) || '').trim() || d;
+    colors = { fg: v('--fg', '255, 255, 255'), accent: v('--accent', '#7aa2ff'), eye: v('--on-accent', '#000'), bg: v('--bg', '#000'), hot: v('--hot', '#ff5f57') };
+  }
+
+  function fit() {
+    const r = canvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    const w = Math.round(canvas.clientWidth), h = Math.round(canvas.clientHeight);
+    if (!w || !h || !r.width) return false;
+    if (w !== W || h !== H || canvas.width !== Math.round(w * dpr)) {
+      W = w; H = h;
+      canvas.width = Math.round(w * dpr);
+      canvas.height = Math.round(h * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      if (st !== 'play' && st !== 'pause') y = floorY();
+    }
+    return true;
+  }
+
+  function message(title, sub) {
+    gmMsg.hidden = !title;
+    gmTitle.textContent = title || '';
+    gmSub.textContent = sub || '';
+  }
+  function hud() {
+    const best = Number(settings.gameBest) || 0;
+    gmBest.textContent = best ? `Record ${best}` : '';
+    gmScore.textContent = st === 'ready' ? '' : String(score());
+  }
+
+  function reset() {
+    fit();
+    y = floorY(); vy = 0; dir = 1; grounded = true; buffered = 0;
+    speed = SPEED0; dist = 0; t = 0; spikes = []; trail = []; lastSide = 1; newBest = false;
+    nextAt = W + 120;
+  }
+
+  // a group of 1 to 3 spikes on the floor or the ceiling; always leaves time to switch sides
+  function spawn() {
+    const n = 1 + Math.floor(Math.random() * (t < 8 ? 2 : 3));
+    const side = Math.random() < 0.5 ? 1 : -1;
+    const w = n * 16;
+    const h = 13 + Math.random() * 5;
+    spikes.push({ x: nextAt, w, h, n, side });
+    const travel = Math.sqrt((2 * (floorY() - ceilY())) / GRAV) * speed; // ground covered while switching sides
+    const minGap = side !== lastSide ? travel + SIZE + 26 : SIZE + 40;
+    lastSide = side;
+    nextAt += w + Math.max(minGap, speed * (0.5 + Math.random() * 0.7));
+  }
+
+  function flip() {
+    if (!grounded) { buffered = 0.13; return; } // pressed just before landing: flips on landing
+    dir = -dir; grounded = false; vy = dir * 90; buffered = 0;
+  }
+
+  function press() {
+    if (st === 'play') { flip(); return; }
+    if (st === 'over' && performance.now() - deadAt < 450) return; // not a restart by accident
+    if (st === 'ready' || st === 'over') reset();
+    readColors();
+    st = 'play';
+    message('');
+    hud();
+    last = performance.now();
+    loop();
+  }
+
+  function die() {
+    st = 'over';
+    deadAt = performance.now();
+    cancelAnimationFrame(raf); raf = 0;
+    const s = score(), best = Number(settings.gameBest) || 0;
+    newBest = s > best;
+    if (newBest) { settings.gameBest = s; window.lagon.setSetting('gameBest', s); }
+    message(newBest ? 'Nouveau record !' : 'Perdu !', `Score ${s}${!newBest && best ? ` · record ${best}` : ''} — clique ou appuie sur Espace pour rejouer`);
+    hud();
+    draw();
+  }
+
+  function step(dt) {
+    t += dt;
+    speed = Math.min(SPEEDMAX, SPEED0 + t * ACCEL);
+    const dx = speed * dt;
+    dist += dx;
+    // gravity pulls towards the floor (dir 1) or the ceiling (dir -1)
+    if (!grounded) {
+      vy += dir * GRAV * dt;
+      y += vy * dt;
+      if (dir === 1 && y >= floorY()) { y = floorY(); vy = 0; grounded = true; }
+      if (dir === -1 && y <= ceilY()) { y = ceilY(); vy = 0; grounded = true; }
+      trail.push({ x: PX, y, a: 0.35 });
+    }
+    if (buffered > 0) { buffered -= dt; if (grounded) flip(); }
+    trail.forEach((p) => { p.x -= dx; p.a -= dt * 1.6; });
+    trail = trail.filter((p) => p.a > 0);
+    // spikes scroll left; new ones come in from the right
+    spikes.forEach((s) => { s.x -= dx; });
+    nextAt -= dx;
+    spikes = spikes.filter((s) => s.x + s.w > -10);
+    while (nextAt < W + 60) spawn();
+    // hit: the player's box (a bit smaller) against the middle of each spike
+    const px0 = PX + 3, px1 = PX + SIZE - 3, py0 = y + 3, py1 = y + SIZE - 3;
+    for (const s of spikes) {
+      for (let i = 0; i < s.n; i++) {
+        const cx = s.x + i * 16 + 8;
+        const sx0 = cx - 4, sx1 = cx + 4;
+        const sy0 = s.side === 1 ? H - PAD - s.h + 3 : PAD, sy1 = s.side === 1 ? H - PAD : PAD + s.h - 3;
+        if (px1 > sx0 && px0 < sx1 && py1 > sy0 && py0 < sy1) return false;
+      }
+    }
+    return true;
+  }
+
+  function draw() {
+    if (!fit()) return;
+    if (!colors) readColors();
+    const { fg, accent, eye } = colors;
+    ctx.clearRect(0, 0, W, H);
+    // floor and ceiling, with marks that scroll to show the speed
+    ctx.fillStyle = `rgba(${fg}, 0.16)`;
+    ctx.fillRect(0, PAD - 2, W, 2);
+    ctx.fillRect(0, H - PAD, W, 2);
+    ctx.fillStyle = `rgba(${fg}, 0.10)`;
+    const off = -(dist % 40);
+    for (let x = off; x < W; x += 40) { ctx.fillRect(x, PAD - 6, 10, 2); ctx.fillRect(x + 20, H - PAD + 4, 10, 2); }
+    // spikes
+    ctx.fillStyle = `rgba(${fg}, 0.82)`;
+    for (const s of spikes) {
+      ctx.beginPath();
+      for (let i = 0; i < s.n; i++) {
+        const x0 = s.x + i * 16;
+        if (s.side === 1) { ctx.moveTo(x0, H - PAD); ctx.lineTo(x0 + 8, H - PAD - s.h); ctx.lineTo(x0 + 16, H - PAD); }
+        else { ctx.moveTo(x0, PAD); ctx.lineTo(x0 + 8, PAD + s.h); ctx.lineTo(x0 + 16, PAD); }
+      }
+      ctx.fill();
+    }
+    // trail, then the little face (its style follows Réglages › Petit visage)
+    for (const p of trail) {
+      ctx.globalAlpha = Math.max(0, p.a);
+      ctx.fillStyle = accent;
+      roundRect(p.x + 4, p.y + 4, SIZE - 8, SIZE - 8, 5);
+    }
+    ctx.globalAlpha = 1;
+    drawFace(PX, y);
+    // not playing: the scene stays behind the message, dimmed
+    if (st !== 'play') {
+      ctx.globalAlpha = 0.6;
+      ctx.fillStyle = colors.bg;
+      ctx.fillRect(0, 0, W, H);
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  function roundRect(x, yy, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, yy);
+    ctx.arcTo(x + w, yy, x + w, yy + h, r);
+    ctx.arcTo(x + w, yy + h, x, yy + h, r);
+    ctx.arcTo(x, yy + h, x, yy, r);
+    ctx.arcTo(x, yy, x + w, yy, r);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  function drawFace(x, yy) {
+    const look = settings.faceStyle || 'classic';
+    const up = dir === -1; // on the ceiling: upside down, ears / antenna point down
+    const { accent, eye } = colors;
+    ctx.fillStyle = accent;
+    if (look === 'cat') {
+      const ey = up ? yy + SIZE : yy;
+      const s = up ? 1 : -1;
+      ctx.beginPath();
+      ctx.moveTo(x + 2, ey); ctx.lineTo(x + 5, ey + s * 7); ctx.lineTo(x + 9, ey);
+      ctx.moveTo(x + SIZE - 9, ey); ctx.lineTo(x + SIZE - 5, ey + s * 7); ctx.lineTo(x + SIZE - 2, ey);
+      ctx.fill();
+    }
+    if (look === 'robot') {
+      const ay = up ? yy + SIZE : yy;
+      ctx.fillRect(x + SIZE / 2 - 1, up ? ay : ay - 6, 2, 6);
+      ctx.beginPath(); ctx.arc(x + SIZE / 2, up ? ay + 7 : ay - 7, 2.2, 0, Math.PI * 2); ctx.fill();
+    }
+    roundRect(x, yy, SIZE, SIZE, look === 'robot' ? 4 : 8);
+    // eyes (closed for a blink now and then, crosses when lost)
+    ctx.fillStyle = eye;
+    ctx.strokeStyle = eye;
+    const ey = yy + (up ? 12 : 7);
+    const eyesX = [x + 7, x + SIZE - 9];
+    if (st === 'over') {
+      ctx.lineWidth = 1.6;
+      eyesX.forEach((ex) => { ctx.beginPath(); ctx.moveTo(ex - 1, ey); ctx.lineTo(ex + 3, ey + 4); ctx.moveTo(ex + 3, ey); ctx.lineTo(ex - 1, ey + 4); ctx.stroke(); });
+    } else if (blink > 0) {
+      eyesX.forEach((ex) => ctx.fillRect(ex - 0.5, ey + 1.5, 3.5, 1.5));
+    } else {
+      eyesX.forEach((ex) => roundRect(ex, ey, 2.6, 4.2, 1.3));
+    }
+    if (look === 'cute') {
+      ctx.fillStyle = 'rgba(255, 120, 150, 0.55)';
+      ctx.beginPath(); ctx.arc(x + 4.5, ey + (up ? -2 : 6), 2, 0, Math.PI * 2); ctx.arc(x + SIZE - 4.5, ey + (up ? -2 : 6), 2, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+
+  function loop() {
+    raf = requestAnimationFrame((now) => {
+      raf = 0;
+      if (st !== 'play') return;
+      const dt = Math.min(1 / 30, Math.max(0, (now - last) / 1000));
+      last = now;
+      blink = blink > 0 ? blink - dt : Math.random() < dt / 3 ? 0.12 : 0;
+      if (!step(dt)) { die(); return; }
+      draw();
+      gmScore.textContent = String(score());
+      loop();
+    });
+  }
+
+  // only while the tab is really on screen; otherwise pause and give the keyboard back
+  function sync() {
+    const shown = island.classList.contains('open') && page === 'game' && !paused && !welcomeOn;
+    if (!shown) {
+      if (st === 'play') {
+        st = 'pause';
+        cancelAnimationFrame(raf); raf = 0;
+        message('Pause', 'Clique ou appuie sur Espace pour reprendre');
+      }
+      if (keyboardOn) { keyboardOn = false; window.lagon.keyboard(false); }
+      return;
+    }
+    if (st === 'ready') message('Saut de gravité', 'Clique ou appuie sur Espace : le petit bonhomme passe du sol au plafond. Évite les pics, ça accélère !');
+    hud();
+    if (st !== 'play') requestAnimationFrame(draw); // after the card has its size
+  }
+
+  canvas.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    // Space works too from now on: Lagon takes the keyboard while you play (given back on leaving)
+    if (!keyboardOn) { keyboardOn = true; window.lagon.keyboard(true); }
+    press();
+  });
+  window.addEventListener('keydown', (e) => {
+    if (page !== 'game' || !island.classList.contains('open')) return;
+    if (e.code !== 'Space' && e.code !== 'ArrowUp' && e.code !== 'KeyW') return;
+    e.preventDefault();
+    if (!e.repeat) press();
+  });
+
+  game = { sync };
+}

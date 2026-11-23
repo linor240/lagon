@@ -73,6 +73,9 @@
         <button data-page="discord" title="Discord">
           <svg class="filled" viewBox="0 0 24 24"><path d="M20.32 4.37a19.8 19.8 0 0 0-4.89-1.52.07.07 0 0 0-.08.04c-.21.38-.44.87-.6 1.25a18.27 18.27 0 0 0-5.49 0 12.64 12.64 0 0 0-.62-1.25.08.08 0 0 0-.08-.04 19.74 19.74 0 0 0-4.88 1.52.07.07 0 0 0-.03.03C.53 9.05-.32 13.58.1 18.06a.08.08 0 0 0 .03.05 19.9 19.9 0 0 0 5.99 3.03.08.08 0 0 0 .09-.03c.46-.63.87-1.3 1.22-1.99a.08.08 0 0 0-.04-.1 13.1 13.1 0 0 1-1.87-.9.08.08 0 0 1-.01-.12l.37-.3a.07.07 0 0 1 .08-.01c3.93 1.8 8.18 1.8 12.06 0a.07.07 0 0 1 .08 0l.37.3a.08.08 0 0 1 0 .13c-.6.35-1.22.65-1.88.9a.08.08 0 0 0-.04.1c.36.7.77 1.36 1.23 1.99a.08.08 0 0 0 .08.03 19.84 19.84 0 0 0 6-3.03.08.08 0 0 0 .04-.06c.5-5.18-.84-9.67-3.55-13.66a.06.06 0 0 0-.03-.03zM8.02 15.33c-1.18 0-2.16-1.08-2.16-2.42 0-1.33.96-2.42 2.16-2.42 1.21 0 2.18 1.1 2.16 2.42 0 1.34-.96 2.42-2.16 2.42zm7.97 0c-1.18 0-2.15-1.08-2.15-2.42 0-1.33.95-2.42 2.15-2.42 1.21 0 2.18 1.1 2.16 2.42 0 1.34-.95 2.42-2.16 2.42z"/></svg>
         </button>
+        <button data-page="game" title="Jeu">
+          <svg viewBox="0 0 24 24"><path d="M7.5 7h9a4.5 4.5 0 0 1 4.4 5.5l-1 4.3a2.3 2.3 0 0 1-4 1L14.4 16H9.6l-1.5 1.8a2.3 2.3 0 0 1-4-1l-1-4.3A4.5 4.5 0 0 1 7.5 7z"/><path d="M7.5 10.5v3M6 12h3"/><circle cx="16" cy="11" r=".6"/><circle cx="17.5" cy="13" r=".6"/></svg>
+        </button>
       </nav>
 
       <!-- only inside the open card, so it is never visible when the island is closed -->
@@ -134,6 +137,7 @@
 
         <!-- pc -->
         <section class="page pc">
+          <div class="tile fps-tile" data-stat="fps"><span class="k">FPS</span><span class="v">–</span><span class="s">&nbsp;</span><div class="b"><i></i></div></div>
           <div class="tile" data-stat="cpu"><span class="k">CPU</span><span class="v">–</span><span class="s">utilisation</span><div class="b"><i></i></div></div>
           <div class="tile" data-stat="gpu"><span class="k">GPU</span><span class="v">–</span><span class="s">RTX</span><div class="b"><i></i></div></div>
           <div class="tile" data-stat="gpuTemp"><span class="k">Temp. GPU</span><span class="v">–</span><span class="s">&nbsp;</span><div class="b"><i></i></div></div>
@@ -222,6 +226,13 @@
 
         <!-- settings (opened with the gear, no tab): one long list on the right, its categories on
              the left light up while it scrolls (the card grows to the big size, see #island.big) -->
+        <!-- mini-game: one key, endless -->
+        <section class="page game">
+          <canvas class="gm-canvas" aria-label="Mini-jeu : saut de gravité"></canvas>
+          <div class="gm-hud"><span class="gm-best"></span><span class="gm-score"></span></div>
+          <div class="gm-msg"><b class="gm-title"></b><span class="gm-sub"></span></div>
+        </section>
+
         <section class="page settings">
           <nav class="s-nav" aria-label="Catégories">
             <button data-cat="general" class="on"><svg viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg><span>Général</span></button>
@@ -263,7 +274,11 @@
                 </div>
                 <span class="f-k">Toujours afficher dans la barre fermée</span>
                 <div class="chips bar-stats">
-                  <button data-k="barCpu">CPU</button><button data-k="barGpu">GPU</button><button data-k="barTemp">Temp. GPU</button><button data-k="barPing">Ping</button><button data-k="barFollowers">Followers Twitch</button>
+                  <button data-k="barCpu">CPU</button><button data-k="barGpu">GPU</button><button data-k="barTemp">Temp. GPU</button><button data-k="barPing">Ping</button><button data-k="barFollowers">Followers Twitch</button><button data-k="barFps" class="fps-chip">FPS</button>
+                </div>
+                <div class="fps-bar-note" hidden>
+                  <span class="f-hint fps-status"></span>
+                  <div class="fps-grant-row" hidden><button class="vl-btn fps-grant">Autoriser les FPS (une seule fois)</button></div>
                 </div>
                 <label class="sw-row"><span>Lancer avec Windows</span><input type="checkbox" data-setting="openAtLogin" /><i class="sw"></i></label>
                 <div><button class="vl-btn wl-again">Revoir l’écran d’accueil</button></div>
@@ -371,6 +386,15 @@
                   <div class="field">
                     <input type="text" class="ping-host" spellcheck="false" maxlength="253" placeholder="1.1.1.1" aria-label="Serveur pour le ping" />
                     <span class="f-hint">Serveur ou adresse IP · Entrée pour valider</span>
+                  </div>
+                  <div class="s-sub" data-needs="fpsCounter">
+                    <label class="sw-row s-main"><span>Compteur de FPS en jeu</span><input type="checkbox" data-setting="fpsCounter" /><i class="sw"></i></label>
+                    <span class="f-hint s-main-hint">Les images par seconde de l’appli au premier plan, comptées par Windows lui-même : Lagon ne touche jamais au jeu (aucun risque avec Vanguard). Tu les vois dans l’onglet PC et, si tu veux, dans la barre fermée.</span>
+                    <div class="s-body">
+                      <span class="f-hint fps-status"></span>
+                      <div class="fps-grant-row" hidden><button class="vl-btn fps-grant">Autoriser les FPS (une seule fois)</button></div>
+                      <span class="f-hint">Pendant une partie, Lagon n’est visible que s’il est sur un autre écran que le jeu, ou si « Masquer et mettre en pause en plein écran » est coupé (Général).</span>
+                    </div>
                   </div>
                 </div>
               </div>
