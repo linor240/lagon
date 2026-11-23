@@ -1057,7 +1057,6 @@ svg.dcv .cut { stroke: currentColor; stroke-width: 2.4; }
 #island.has-stats:not(.open):not(.osd):not(.focus) .c-stats { display: flex; }
 #island.has-stats:not(.open):not(.osd):not(.focus) .compact { right: var(--xw, 0px); }
 #island.open .c-stats, #island.osd .c-stats { display: none; }
-body[data-attach="floating"] .c-stats { top: var(--float-gap); }
 .bar-stats button.on { background: rgba(var(--fg), 0.18); color: var(--text); }
 
 /* ---------- shortcuts ---------- */
