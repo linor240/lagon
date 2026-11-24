@@ -2040,7 +2040,7 @@ Promise.resolve(window.lagon.hotkeysState && window.lagon.hotkeysState()).then((
 // The little face runs along the card; a click or Space sends it from the floor to the ceiling
 // (and back) over the spikes. Faster and faster. Drawn on a canvas, only while it is played on
 // screen: leaving the tab, closing the bar or a fullscreen app pauses it (no frame drawn then).
-{
+(() => { // a function, not a bare block: its function names stay inside (a bare block once replaced render())
   const canvas = $('.gm-canvas');
   const ctx = canvas.getContext('2d');
   const gmScore = $('.gm-score'), gmBest = $('.gm-best'), gmMsg = $('.gm-msg'), gmTitle = $('.gm-title'), gmSub = $('.gm-sub');
@@ -2320,13 +2320,13 @@ Promise.resolve(window.lagon.hotkeysState && window.lagon.hotkeysState()).then((
   });
 
   game = { sync };
-}
+})();
 
 // ---------- mini-game: la Roue (play chips, double or nothing) ----------
 // A strip of 15 cases (7 red, 7 black, 1 green) slides under the marker and slows down. Pick a bet,
 // then click a colour: red / black pay x2, green x14. Chips only (nothing real), kept in the
 // settings; at 0 the bank starts again at 100. The strip only moves during a spin (one transition).
-{
+(() => { // same: own scope (its render() replaced the music one in 0.11.0)
   const el = $('.wh');
   const track = $('.wh-track');
   const bankEl = $('.wh-bank'), bestEl = $('.wh-best'), resEl = $('.wh-res');
@@ -2416,4 +2416,4 @@ Promise.resolve(window.lagon.hotkeysState && window.lagon.hotkeysState()).then((
       render();
     },
   };
-}
+})();
