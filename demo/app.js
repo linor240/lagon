@@ -1887,7 +1887,16 @@ function renderBarStats() {
     return span;
   }));
   // a stable width (it would jitter with every number otherwise): measured, rounded up to 8 px
-  const xw = on ? Math.ceil((barStatsEl.scrollWidth + 14) / 8) * 8 : 0;
+  // the strip is hidden while the bar is open or shows a pop-up: shown for the measure only, or it
+  // would measure 0 and the music would cover it once the bar closes
+  let w = 0;
+  if (on) {
+    const hidden = getComputedStyle(barStatsEl).display === 'none';
+    if (hidden) { barStatsEl.style.visibility = 'hidden'; barStatsEl.style.display = 'flex'; }
+    w = barStatsEl.scrollWidth;
+    if (hidden) { barStatsEl.style.display = ''; barStatsEl.style.visibility = ''; }
+  }
+  const xw = on ? Math.ceil((w + 14) / 8) * 8 : 0;
   if (xw !== barXw) {
     barXw = xw;
     island.style.setProperty('--xw', xw + 'px');
