@@ -23,6 +23,7 @@ let coverPal = null; // hues of the current artwork (see pickAccent), null = gre
 let welcomeOn = false; // the first-launch screen is shown (the card stays open, big)
 let tabOrderKey = ''; // tab order applied last (see applyTabOrder)
 let game = null; // the mini-game ({ sync }), set up further down
+let wheel = null; // the other mini-game, la Roue ({ sync })
 let fpsNow = null; // last FPS reading from the helper ({state, fps, app})
 let fpsAccess = null; // may this Windows account read the FPS (null: not asked yet)
 let fpsGrant = null; // answer to "Autoriser les FPS": asking, ok, already, cancelled, error
@@ -905,7 +906,7 @@ const MODULES = [
   ['obs', 'widgetObs', 'OBS', 'Live, débit et micro'],
   ['valorant', 'widgetValorant', 'Valorant', 'Rang, RR et dernier match'],
   ['discord', 'widgetDiscord', 'Discord', 'Ton vocal, micro et sourdine'],
-  ['game', 'widgetGame', 'Jeu', 'Mini-jeu à une touche'],
+  ['game', 'widgetGame', 'Jeu', 'Saut de gravité et la Roue'],
 ];
 const ACCOUNT_WIDGETS = ['widgetTwitch', 'widgetObs', 'widgetDiscord', 'widgetValorant'];
 const GRIP_SVG = '<svg viewBox="0 0 24 24"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg>';
@@ -2273,8 +2274,23 @@ Promise.resolve(window.lagon.hotkeysState && window.lagon.hotkeysState()).then((
   }
 
   // only while the tab is really on screen; otherwise pause and give the keyboard back
+  // two games in the tab: Saut de gravité ("jump") and la Roue ("wheel"), picked top-left
+  const gameEl = $('.page.game');
+  const modeBtns = [...gameEl.querySelectorAll('.gm-modes button')];
+  modeBtns.forEach((b) => b.addEventListener('click', () => {
+    if (settings.gameMode === b.dataset.v) return;
+    settings.gameMode = b.dataset.v;
+    window.lagon.setSetting('gameMode', b.dataset.v);
+    sync();
+  }));
+
   function sync() {
-    const shown = island.classList.contains('open') && page === 'game' && !paused && !welcomeOn;
+    const mode = settings.gameMode === 'wheel' ? 'wheel' : 'jump';
+    gameEl.dataset.mode = mode;
+    modeBtns.forEach((b) => b.classList.toggle('on', b.dataset.v === mode));
+    const onTab = island.classList.contains('open') && page === 'game' && !paused && !welcomeOn;
+    if (wheel) wheel.sync(onTab && mode === 'wheel');
+    const shown = onTab && mode === 'jump';
     if (!shown) {
       if (st === 'play') {
         st = 'pause';
@@ -2297,11 +2313,107 @@ Promise.resolve(window.lagon.hotkeysState && window.lagon.hotkeysState()).then((
     press();
   });
   window.addEventListener('keydown', (e) => {
-    if (page !== 'game' || !island.classList.contains('open')) return;
+    if (page !== 'game' || !island.classList.contains('open') || settings.gameMode === 'wheel') return;
     if (e.code !== 'Space' && e.code !== 'ArrowUp' && e.code !== 'KeyW') return;
     e.preventDefault();
     if (!e.repeat) press();
   });
 
   game = { sync };
+}
+
+// ---------- mini-game: la Roue (play chips, double or nothing) ----------
+// A strip of 15 cases (7 red, 7 black, 1 green) slides under the marker and slows down. Pick a bet,
+// then click a colour: red / black pay x2, green x14. Chips only (nothing real), kept in the
+// settings; at 0 the bank starts again at 100. The strip only moves during a spin (one transition).
+{
+  const el = $('.wh');
+  const track = $('.wh-track');
+  const bankEl = $('.wh-bank'), bestEl = $('.wh-best'), resEl = $('.wh-res');
+  const betBtns = [...el.querySelectorAll('[data-bet]')];
+  const ORDER = ['g', 'r', 'b', 'r', 'b', 'r', 'b', 'r', 'b', 'r', 'b', 'r', 'b', 'r', 'b'];
+  const NAME = { r: 'Rouge', b: 'Noir', g: 'Vert' };
+  const PITCH = 40, CELL = 36, REPS = 9;
+  let betKind = '10', spinning = false, at = 15, built = false; // at: case under the marker (2nd lap: cases on both sides)
+  const fmt = (n) => Number(n).toLocaleString('fr-FR');
+  const coins = () => (settings.wheelCoins == null ? 100 : Math.max(0, Math.floor(Number(settings.wheelCoins) || 0)));
+
+  function build() {
+    if (built) return;
+    built = true;
+    const cells = [];
+    for (let i = 0; i < REPS; i++) ORDER.forEach((c) => { const d = document.createElement('i'); d.className = `wh-cell ${c}`; cells.push(d); });
+    track.replaceChildren(...cells);
+  }
+  // put case number n (of the whole strip) under the marker, with a small offset inside the case
+  function place(n, jitter, animate) {
+    const center = track.parentElement.clientWidth / 2;
+    track.classList.toggle('spin', animate);
+    track.style.transform = `translateX(${Math.round(center - (n * PITCH + CELL / 2 + jitter))}px)`;
+  }
+  function bet() {
+    const c = coins();
+    const b = betKind === 'all' ? c : betKind === 'half' ? Math.ceil(c / 2) : Number(betKind);
+    return Math.max(0, Math.min(c, b));
+  }
+  function render() {
+    bankEl.textContent = `${fmt(coins())} jetons`;
+    bestEl.textContent = `Record ${fmt(Math.max(coins(), Number(settings.wheelBest) || 0))}`;
+    betBtns.forEach((b) => b.classList.toggle('on', b.dataset.bet === betKind));
+    el.classList.toggle('busy', spinning);
+  }
+  function save(n) {
+    settings.wheelCoins = n;
+    window.lagon.setSetting('wheelCoins', n);
+    if (n > (Number(settings.wheelBest) || 0)) { settings.wheelBest = n; window.lagon.setSetting('wheelBest', n); }
+  }
+
+  function spin(color) {
+    if (spinning) return;
+    const stake = bet();
+    if (stake < 1) return;
+    const r = new Uint32Array(2);
+    crypto.getRandomValues(r);
+    const hit = r[0] % 15;
+    const jitter = ((r[1] % 1000) / 1000 - 0.5) * (CELL - 10);
+    spinning = true;
+    resEl.className = 'wh-res';
+    resEl.textContent = `${fmt(stake)} sur ${NAME[color]}…`;
+    save(coins() - stake); // the stake leaves the bank now (a closed Lagon can't cheat a loss)
+    render();
+    place(15 + (at % 15), 0, false); // back to the 2nd lap, same case: no visible jump
+    void track.offsetWidth;
+    at = 15 * (REPS - 2) + hit;
+    place(at, jitter, true);
+    setTimeout(() => {
+      spinning = false;
+      const got = ORDER[hit];
+      if (got === color) {
+        const win = stake * (color === 'g' ? 14 : 2);
+        save(coins() + win);
+        resEl.className = 'wh-res win';
+        resEl.textContent = `${NAME[got]} ! +${fmt(win - stake)} jetons · « Tout » pour tout remiser`;
+      } else if (coins() < 1) {
+        save(100);
+        resEl.className = 'wh-res lose';
+        resEl.textContent = `${NAME[got]}… plus rien ! On te redonne 100 jetons`;
+      } else {
+        resEl.className = 'wh-res lose';
+        resEl.textContent = `${NAME[got]}… −${fmt(stake)} jetons`;
+      }
+      render();
+    }, 4300);
+  }
+
+  betBtns.forEach((b) => b.addEventListener('click', () => { betKind = b.dataset.bet; render(); }));
+  el.querySelectorAll('[data-c]').forEach((b) => b.addEventListener('click', () => spin(b.dataset.c)));
+
+  wheel = {
+    sync(shown) {
+      if (!shown) return;
+      build();
+      if (!spinning) { place(at, 0, false); if (!resEl.textContent) resEl.textContent = 'Choisis ta mise, puis une couleur'; }
+      render();
+    },
+  };
 }

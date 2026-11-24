@@ -231,6 +231,22 @@
           <canvas class="gm-canvas" aria-label="Mini-jeu : saut de gravité"></canvas>
           <div class="gm-hud"><span class="gm-best"></span><span class="gm-score"></span></div>
           <div class="gm-msg"><b class="gm-title"></b><span class="gm-sub"></span></div>
+          <!-- la Roue: play chips only (nothing real to win or lose) -->
+          <div class="wh">
+            <div class="wh-top"><span class="wh-bank"></span><span class="wh-best"></span></div>
+            <div class="wh-strip"><div class="wh-track"></div><i class="wh-marker"></i></div>
+            <div class="wh-res"></div>
+            <div class="wh-ctrl">
+              <div class="wh-bets">
+                <span class="wh-k">Mise</span>
+                <button data-bet="10">10</button><button data-bet="50">50</button><button data-bet="half">½</button><button data-bet="all">Tout</button>
+              </div>
+              <div class="wh-colors">
+                <button data-c="r" class="red">Rouge <small>×2</small></button><button data-c="g" class="green">Vert <small>×14</small></button><button data-c="b" class="black">Noir <small>×2</small></button>
+              </div>
+            </div>
+          </div>
+          <div class="gm-modes" role="group" aria-label="Choix du jeu"><button data-v="jump">Saut</button><button data-v="wheel">Roue</button></div>
         </section>
 
         <section class="page settings">
