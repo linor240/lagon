@@ -1148,7 +1148,7 @@ svg.dcv .cut { stroke: currentColor; stroke-width: 2.4; }
 .nt-k { flex: 1; min-width: 0; font-size: 10.5px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .nt-all { height: 20px; padding: 0 8px; border-radius: 6px; font-size: 10.5px; color: var(--dim); background: rgba(var(--fg), 0.08); }
 .nt-all:hover { background: rgba(var(--fg), 0.16); color: var(--text); }
-.notes:not(.day) .nt-all { visibility: hidden; }
+.notes:not(.day) .nt-all { display: none; }
 .nt-in { margin-top: 3px; flex: none; }
 .nt-when { height: 15px; margin-top: 2px; font-size: 10.5px; color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .nt-when.set { color: var(--accent); }
@@ -1173,3 +1173,54 @@ svg.dcv .cut { stroke: currentColor; stroke-width: 2.4; }
 .nt-row.done .nt-wh { color: var(--faint); }
 /* quick note: the field stands out, the hint says what the keys do */
 .notes.quick .nt-in { border-color: var(--accent); }
+
+/* ---------- delivery timer: a row under the closed bar (after the live ticker) + a strip in Notes ---------- */
+.dlv {
+  position: absolute; left: 0; right: 0; top: 36px; height: 22px;
+  display: none; align-items: center; gap: 8px; padding: 0 14px 2px;
+  border-top: 1px solid rgba(var(--fg), 0.07);
+  font-size: 11.5px; font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums;
+}
+#island.dlv-on:not(.open):not(.osd-wrap) { height: 58px; }
+#island.dlv-on.ticker-on:not(.open):not(.osd-wrap) { height: 80px; }
+#island.ticker-on .dlv { top: 58px; }
+#island.dlv-on:not(.open) .dlv { display: flex; }
+#island.osd-wrap .dlv { display: none !important; }
+.dv-track { position: relative; flex: 1; height: 15px; min-width: 0; }
+.dv-line { position: absolute; left: 2px; right: 8px; top: 11px; height: 2px; border-radius: 1px; background: rgba(var(--fg), 0.16); overflow: hidden; }
+.dv-fill { display: block; height: 100%; width: 0; background: var(--accent); transition: width 1s linear; }
+.dv-bike { position: absolute; top: 2px; left: calc(var(--p, 0) * (100% - 30px)); width: 17px; height: 11.5px; color: var(--text); transition: left 1s linear; }
+.dv-home { position: absolute; right: 0; top: 0; width: 13px; height: 13px; color: var(--dim); }
+.dv-track svg { display: block; width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+.dv-left { flex: none; }
+.dlv.done .dv-left, .dlv.done .dv-bike, .dlv.done .dv-home, .nt-dlv.done .dv-bike, .nt-dlv.done .dv-home { color: var(--good); }
+.nt-bike { height: 20px; padding: 0 8px; border-radius: 6px; font-size: 10.5px; color: var(--dim); background: rgba(var(--fg), 0.08); }
+.nt-bike:hover { background: rgba(var(--fg), 0.16); color: var(--text); }
+.nt-dlv { display: flex; align-items: center; gap: 8px; height: 24px; margin-top: 3px; padding: 0 3px 0 8px; border-radius: 8px; background: rgba(var(--fg), 0.06); font-size: 11px; color: var(--text); flex: none; }
+.nt-dlv[hidden] { display: none; }
+.nt-dlv .dv-track { flex: 0 0 84px; }
+.dv-txt { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
+.nt-dlv.done .dv-txt { color: var(--good); }
+.dv-more { flex: none; height: 18px; padding: 0 6px; border-radius: 5px; font-size: 10.5px; color: var(--dim); background: rgba(var(--fg), 0.08); }
+.dv-more:hover { background: rgba(var(--fg), 0.16); color: var(--text); }
+.dv-stop { flex: none; width: 18px; height: 18px; border-radius: 5px; display: grid; place-items: center; color: var(--faint); }
+.dv-stop:hover { background: rgba(var(--fg), 0.12); color: var(--bad); }
+.dv-stop svg { width: 11px; height: 11px; fill: none; stroke: currentColor; stroke-width: 2.6; stroke-linecap: round; }
+
+/* arrival in the closed bar: the line sweeps into the house, the bike drops in, the house slides
+   towards the middle and "Arrivée ?" appears next to it (one-off transitions, nothing loops) */
+.dlv .dv-line { transform-origin: right center; transition: transform 0.45s var(--ease), opacity 0.45s var(--ease); }
+.dlv .dv-bike { transition: left 1s linear, transform 0.4s var(--ease), opacity 0.35s var(--ease); }
+.dlv .dv-home { transition: right 0.6s var(--spring) 0.3s, color 0.3s var(--ease); }
+.dv-arrive {
+  position: absolute; left: calc(50% - 20px); top: 0; line-height: 14px;
+  font-size: 11.5px; font-weight: 600; color: var(--good); white-space: nowrap; pointer-events: none;
+  opacity: 0; transform: translateX(-8px);
+  transition: opacity 0.35s var(--ease) 0.55s, transform 0.5s var(--spring) 0.55s;
+}
+.dlv .dv-left { max-width: 64px; overflow: hidden; white-space: nowrap; transition: max-width 0.45s var(--ease), opacity 0.25s var(--ease), margin 0.45s var(--ease); }
+.dlv.done .dv-line { transform: scaleX(0); opacity: 0; }
+.dlv.done .dv-bike { transform: translateX(10px) scale(0.4); opacity: 0; }
+.dlv.done .dv-home { right: calc(50% + 24px); }
+.dlv.done .dv-arrive { opacity: 1; transform: none; }
+.dlv.done .dv-left { max-width: 0; opacity: 0; margin-left: -8px; }

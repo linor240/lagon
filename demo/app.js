@@ -87,7 +87,8 @@ function sendSizes(idle) {
   const focus = !!settings.focusMode;
   const w = focus ? 64 : (!idle ? 290 : settings.idleFace ? 184 : 132) + barXw;
   const gap = settings.islandAttach === 'floating' ? 8 : 0; // floating: the island starts 8px lower
-  const tickerRow = island.classList.contains('ticker-on') ? 22 : 0; // live ticker under the closed island
+  // rows under the closed island: live ticker, delivery timer (22 px each, see style.css)
+  const tickerRow = (island.classList.contains('ticker-on') ? 22 : 0) + (island.classList.contains('dlv-on') ? 22 : 0);
   const h = focus ? 6 : 36 + tickerRow; // keep in sync with #island.focus in style.css
   const big = island.classList.contains('big');
   const sizes = { compact: { w, h: h + gap }, open: big ? { w: 720, h: 420 + gap } : { w: 540, h: 228 + gap } };
@@ -2449,6 +2450,7 @@ Promise.resolve(window.lagon.hotkeysState && window.lagon.hotkeysState()).then((
   const CHECK = '<svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>';
   const CROSS = '<svg viewBox="0 0 24 24"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg>';
   const ICON = svg('<rect x="4" y="5" width="16" height="15" rx="2.5"/><path d="M8.5 3v4M15.5 3v4M4 10h16M8 14h4.5M8 17h7"/>');
+  const BIKE_HUD = svg('<g transform="translate(0 4)"><rect x="1.5" y=".8" width="5.5" height="4.4" rx="1"/><circle cx="5" cy="12" r="3.2"/><circle cx="19" cy="12" r="3.2"/><path d="M5 12 9 6.5h6.2L19 12M9 6.5l3 5.5 3.2-5.5M15.2 6.5 14.3 3.2h2.4M8 4.4h3"/></g>');
   const MAX = 500;
 
   let notes = [];
@@ -2457,7 +2459,7 @@ Promise.resolve(window.lagon.hotkeysState && window.lagon.hotkeysState()).then((
   let month = null; // first day of the month on screen
   let drawnFor = ''; // the day the tab was last drawn for (redrawn after midnight)
   let remTimer = null;
-  let quickWhen = ''; // what the quick note was understood as, for the pop-up after Entrée
+  let quickHud = null; // the pop-up after a quick note's Entrée ({ title, sub })
 
   const pad = (n) => String(n).padStart(2, '0');
   const ymd = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -2665,6 +2667,14 @@ Promise.resolve(window.lagon.hotkeysState && window.lagon.hotkeysState()).then((
         : sel ? `Pour ${whenLabel({ date: sel }, true)}` : 'Entrée pour ajouter';
       return;
     }
+    const dv = parseDelivery(text);
+    if (dv) {
+      if (dv.end == null) { whenEl.textContent = 'Livraison : ajoute l’heure ou les minutes, ex. « livraison 25 min »'; return; }
+      whenEl.textContent = dv.end - Date.now() > 4 * 3600e3 ? 'Livraison : 4 h au maximum'
+        : `→ livraison vers ${clock(dv.end)} (dans ${minsLeft(dv.end)} min)`;
+      whenEl.classList.add(dv.end - Date.now() > 4 * 3600e3 ? 'bad' : 'set');
+      return;
+    }
     const w = noteWhen(text);
     whenEl.textContent = w.date ? `→ ${whenLabel(w, true)}` : '→ sans date';
     if (w.date) whenEl.classList.add('set');
@@ -2673,6 +2683,14 @@ Promise.resolve(window.lagon.hotkeysState && window.lagon.hotkeysState()).then((
   function add() {
     const text = input.value.trim().slice(0, 300);
     if (!text) return false;
+    const dv = parseDelivery(text);
+    if (dv) {
+      if (dv.end == null || !startDelivery(dv.end)) { preview(); whenEl.classList.add('bad'); return false; }
+      quickHud = { title: 'Livraison suivie', sub: `Arrivée vers ${clock(settings.delivery.end)}` };
+      input.value = '';
+      preview();
+      return true;
+    }
     if (notes.length >= MAX) {
       whenEl.textContent = `${MAX} notes au maximum : supprime les anciennes.`;
       whenEl.className = 'nt-when bad';
@@ -2682,7 +2700,7 @@ Promise.resolve(window.lagon.hotkeysState && window.lagon.hotkeysState()).then((
     const n = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 8), text, date: w.date, time: w.time, done: false, rem: false, at: Date.now() };
     n.rem = n.date != null && dueAt(n) <= Date.now(); // its moment has already come: no pop-up for it
     notes.unshift(n);
-    quickWhen = whenLabel(n, true);
+    quickHud = { title: 'Note enregistrée', sub: whenLabel(n, true) || undefined };
     input.value = '';
     save();
     draw();
@@ -2701,7 +2719,7 @@ Promise.resolve(window.lagon.hotkeysState && window.lagon.hotkeysState()).then((
       if (quickOn) {
         quickEnd(true);
         setOpen(false);
-        if (added) showHud({ kind: 'note', icon: ICON, title: 'Note enregistrée', sub: quickWhen || undefined }, 1600);
+        if (added) showHud({ kind: 'note', icon: quickHud.title === 'Livraison suivie' ? BIKE_HUD : ICON, title: quickHud.title, sub: quickHud.sub }, 1600);
       }
     } else if (e.key === 'Escape') {
       e.preventDefault();
@@ -2802,6 +2820,123 @@ Promise.resolve(window.lagon.hotkeysState && window.lagon.hotkeysState()).then((
   }
   window.lagon.onPaused((on) => { if (!on) setTimeout(remind, 1500); else { clearTimeout(remTimer); remTimer = null; } });
 
+
+  // ---- delivery timer ("livraison 25 min", "uber 20h40") ----
+  // Uber Eats & co. have no API for customers: the user types the arrival time shown in their app.
+  // A row under the closed bar shows a little bike riding to the house; at the time, a pop-up says
+  // to check the app. Saved in the `delivery` setting ({ start, end, told } in ms) so a restart keeps
+  // it. Moves every 15 s, only while shown; nothing runs without a delivery.
+  const DLV_RE = /^\s*(livraison|livreur|uber\s*eats|uber|deliveroo|just\s*eat)\b/i;
+  const dlvRow = $('.dlv');
+  const dlvStrip = $('.nt-dlv');
+  const dlvParts = [...document.querySelectorAll('.dv-track')].map((t) => ({ t, fill: t.querySelector('.dv-fill') }));
+  let dlvTick = null;
+  let dlvTimer = null;
+  let dlvKey = '';
+
+  // "livraison 25 min" / "uber dans 1h" / "uber 20h40" / "uber 20h35-20h45" (the end of the window)
+  function parseDelivery(raw, now = Date.now()) {
+    const kw = DLV_RE.exec(raw);
+    if (!kw) return null;
+    if (!raw.slice(kw[0].length).trim()) return { end: null }; // the keyword alone: the hint asks for a time
+    if (parseWhen(raw).date) return null; // "livraison colis mardi": a note for a day, not a timer
+    const t = ' ' + raw.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[–—]/g, '-') + ' ';
+    let m = /\s(\d{1,3})\s*(?:min|mn|minutes?)(?=[\s,.!?;)-])/.exec(t);
+    if (m) return { end: now + Math.min(240, Number(m[1])) * 60000 };
+    m = /\sdans\s+(\d)\s*h\s*([0-5]\d)?(?=[\s,.!?;)-])/.exec(t);
+    if (m) return { end: now + (Number(m[1]) * 60 + Number(m[2] || 0)) * 60000 };
+    let last = null;
+    for (const x of t.matchAll(/[\s(-]([01]?\d|2[0-3])(?:h([0-5]\d)?|:([0-5]\d))(?=[\s,.!?;)-])/g)) last = x;
+    if (!last) return null; // no time: an ordinary note ("livraison colis Amazon")
+    const d = new Date(now);
+    d.setHours(Number(last[1]), Number(last[2] || last[3] || 0), 0, 0);
+    if (d.getTime() <= now - 3600e3) d.setDate(d.getDate() + 1); // "0h20" typed at 23h50 (a time just past: late)
+    return { end: d.getTime() };
+  }
+  const clock = (ms) => { const d = new Date(ms); return `${d.getHours()}h${pad(d.getMinutes())}`; };
+  const minsLeft = (ms) => Math.max(0, Math.ceil((ms - Date.now()) / 60000));
+  function dlvValid(v) {
+    return v && Number.isFinite(v.start) && Number.isFinite(v.end) && v.end > v.start;
+  }
+
+  function startDelivery(end) {
+    const now = Date.now();
+    if (end - now > 4 * 3600e3) return false;
+    setDelivery({ start: now, end: Math.max(end, now + 60000), told: false });
+    return true;
+  }
+  function setDelivery(v) {
+    settings.delivery = v;
+    window.lagon.setSetting('delivery', v);
+    syncDelivery(true);
+  }
+
+  // the bike's place and the minutes left, in the closed bar row and in the Notes tab
+  function drawDelivery() {
+    const v = settings.delivery;
+    if (!dlvValid(v)) return;
+    const now = Date.now();
+    const p = Math.min(1, Math.max(0, (now - v.start) / (v.end - v.start)));
+    const arrived = now >= v.end;
+    dlvParts.forEach(({ t, fill }) => { t.style.setProperty('--p', p.toFixed(4)); fill.style.width = (p * 100).toFixed(2) + '%'; });
+    const left = minsLeft(v.end);
+    $('.dv-left').textContent = arrived ? 'Arrivée ?' : `${left} min`;
+    $('.nt-dlv .dv-txt').textContent = arrived ? 'Elle devrait être là' : `Vers ${clock(v.end)} · ${left} min`;
+    dlvRow.classList.toggle('done', arrived);
+    dlvStrip.classList.toggle('done', arrived);
+  }
+
+  function syncDelivery(force = false) {
+    let v = settings.delivery;
+    // more than 10 minutes after the time: over
+    if (v && (!dlvValid(v) || Date.now() > v.end + 10 * 60000)) { if (settingsLoaded && v) { settings.delivery = null; window.lagon.setSetting('delivery', null); } v = null; }
+    const on = !!(v && settings.widgetNotes);
+    const shown = on && !paused && !settings.focusMode;
+    const key = `${on}${shown}${v ? v.end + '' + v.told : ''}`;
+    if (key === dlvKey && !force) return;
+    dlvKey = key;
+    if (on !== island.classList.contains('dlv-on')) {
+      island.classList.toggle('dlv-on', on);
+      sendSizes(island.classList.contains('idle'));
+    }
+    dlvStrip.hidden = !on;
+    clearInterval(dlvTick);
+    dlvTick = null;
+    clearTimeout(dlvTimer);
+    dlvTimer = null;
+    if (!on) return;
+    drawDelivery();
+    if (shown) dlvTick = setInterval(() => { const d = settings.delivery; if (!dlvValid(d) || Date.now() > d.end + 10 * 60000) syncDelivery(); else drawDelivery(); }, 15000);
+    if (!v.told && !paused) dlvTimer = setTimeout(arrive, Math.max(0, v.end - Date.now()));
+  }
+
+  function arrive() {
+    const v = settings.delivery;
+    if (!dlvValid(v) || v.told) return;
+    if (paused) return; // shown when the fullscreen app leaves (onPaused -> syncDelivery)
+    if (island.classList.contains('open') || settings.focusMode) { dlvTimer = setTimeout(arrive, settings.focusMode ? 60000 : 4000); return; }
+    drawDelivery();
+    showHud({ kind: 'delivery', icon: BIKE_HUD, title: 'Ta livraison est censée être arrivée', sub: 'Vérifie ton application' }, 8000);
+    setDelivery({ ...v, told: true });
+  }
+
+  $('.dv-more').addEventListener('click', () => {
+    const v = settings.delivery;
+    if (!dlvValid(v)) return;
+    const end = Math.max(v.end, Date.now()) + 5 * 60000;
+    if (end - v.start > 4.5 * 3600e3) return; // the app keeps 5 h at most
+    setDelivery({ start: v.start, end, told: false });
+  });
+  $('.dv-stop').addEventListener('click', () => setDelivery(null));
+  $('.nt-bike').addEventListener('click', () => {
+    if (!/^\s*livraison\b/i.test(input.value)) input.value = 'livraison ' + input.value.trimStart();
+    window.lagon.keyboard(true);
+    input.focus({ preventScroll: true });
+    input.setSelectionRange(input.value.length, input.value.length);
+    preview();
+  });
+  window.lagon.onPaused(() => syncDelivery(true));
+
   let remKey = '';
   notesUi = {
     quickEnd,
@@ -2811,6 +2946,7 @@ Promise.resolve(window.lagon.hotkeysState && window.lagon.hotkeysState()).then((
       if (page === 'notes' && island.classList.contains('open') && drawnFor !== ymd(new Date())) draw();
       const key = `${!!settings.widgetNotes}${!!settings.notesReminders}`;
       if (key !== remKey) { remKey = key; remind(); }
+      syncDelivery();
     },
   };
 
