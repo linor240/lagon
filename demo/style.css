@@ -856,7 +856,7 @@ body[data-style="glass"] #island.playing {
 .welcome { display: none; position: absolute; inset: 0; z-index: 5; flex-direction: column; gap: 14px; padding: 26px 30px 22px; }
 #island.wl-on .welcome { display: flex; animation: wl-in 0.4s var(--ease); }
 @keyframes wl-in { from { opacity: 0; transform: translateY(6px); } }
-#island.wl-on .tabs, #island.wl-on .gear, #island.wl-on .pages { visibility: hidden; }
+#island.wl-on .tabs, #island.wl-on .gear, #island.wl-on .pages, #island.wl-on .rk-corner { visibility: hidden; }
 .wl-head { display: flex; align-items: center; gap: 16px; }
 .wl-face { flex: none; scale: 1.3; margin: 0 8px 0 6px; }
 .wl-head-txt { min-width: 0; }
@@ -1094,7 +1094,7 @@ svg.dcv .cut { stroke: currentColor; stroke-width: 2.4; }
 .carve { stroke: var(--bg); }
 
 /* Settings > little face: one preview per style */
-.face-pick { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+.face-pick { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
 .face-pick button { min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 0 6px; border-radius: 10px; background: rgba(var(--fg), 0.06); color: var(--dim); font-size: 11.5px; transition: background 0.15s; }
 .face-pick button:hover { background: rgba(var(--fg), 0.1); }
 .face-pick button.on { background: rgba(var(--fg), 0.16); color: var(--text); font-weight: 600; }
@@ -1238,12 +1238,6 @@ svg.dcv .cut { stroke: currentColor; stroke-width: 2.4; }
 /* ---------- seniority rank: badges (app.js "seniority rank"), the face as a badge, Settings box ---------- */
 svg.rb { display: block; width: 100%; height: 100%; overflow: visible; }
 svg.rb * { transform-box: fill-box; transform-origin: center; }
-.rank-badge { display: none; width: 24px; height: 24px; }
-:is(.face, .mini-face)[data-look="rank"] .face-in > :not(.rank-badge):not(.zzz) { display: none !important; }
-:is(.face, .mini-face)[data-look="rank"] .rank-badge { display: block; }
-.mini-face[data-look="rank"] .rank-badge { width: 22px; height: 22px; }
-.face[data-look="rank"] .rank-badge { transition: opacity 0.6s var(--ease), filter 0.6s var(--ease); }
-.face[data-look="rank"].sleep .rank-badge { opacity: 0.55; filter: saturate(0.4); }
 .o-icon svg.rb { width: 18px; height: 18px; }
 
 .rk-box[hidden] { display: none; }
@@ -1317,3 +1311,9 @@ svg.rb * { transform-box: fill-box; transform-origin: center; }
 .page.clips .vc-last[hidden] ~ .cl-btns { display: none; }
 .cl-row { padding: 4px 10px; border-radius: 9px; background: rgba(var(--fg), 0.06); font-weight: 600; }
 .page.clips .vc-status, .page.clips .vc-heard, .page.clips .vc-result { font-size: 11px; line-height: 1.35; }
+
+/* your rank, top left of the open card (same height as the tabs and the gear) */
+.rk-corner { position: absolute; top: 6px; left: 16px; width: 26px; height: 26px; padding: 2px; border-radius: 8px; z-index: 2; }
+.rk-corner[hidden] { display: none; }
+.rk-corner:hover { background: rgba(var(--fg), 0.1); }
+.rk-corner svg { width: 100%; height: 100%; }

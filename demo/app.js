@@ -1260,8 +1260,6 @@ function faceAct() {
   if (paused) return;
   if (!faceVisible() || asleep) return;
   const r = Math.random();
-  // the seniority badge instead of the face: now and then its own little animation
-  if (settings.faceStyle === 'rank') { if (r < 0.2 && rankUi) rankUi.play(face); return; }
   if (r < 0.42) blink();
   else if (r < 0.58) { blink(); setTimeout(blink, 240); }   // double blink
   else if (r < 0.68) momentary('wink', 420);
@@ -1311,7 +1309,7 @@ window.lagon.onAway((away) => {
     sequence([
       [0, () => momentary('surprised', 650)],
       [500, () => island.classList.remove('face-center')],
-      [1150, () => { momentary('happy', 1300); if (settings.faceStyle === 'rank' && rankUi) rankUi.play(face); }],
+      [1150, () => momentary('happy', 1300)],
     ]);
   }
 });
@@ -3042,7 +3040,7 @@ Promise.resolve(window.lagon.hotkeysState && window.lagon.hotkeysState()).then((
 // `since` (first launch, filled by the app from the data folder's creation date) gives the rank;
 // the badges are Lagon's own drawings (an original take on a "criminal profile", no game art).
 // Each badge has a short one-off animation (`.play`, about 1.4 s): played by the face when the
-// badge replaces it (faceStyle "rank"), on hover in the settings, in the rank-up pop-up. Nothing loops.
+// corner badge of the open card is pointed at, on hover in the settings, in the rank-up pop-up. Nothing loops.
 (() => {
   const DAY = 864e5;
   // A star that grows up (the user's idea, 0.17.0): one minimalist look (flat bold shapes, a tilted orbit
@@ -3143,14 +3141,21 @@ Promise.resolve(window.lagon.hotkeysState && window.lagon.hotkeysState()).then((
     svgEl._t = setTimeout(() => svgEl.classList.remove('play'), 1600);
   }
 
-  // ---- the face's badge and the "Rang" preview in Settings > Apparence ----
-  const faceBadges = [...document.querySelectorAll('.rank-badge')];
+  // ---- top left of the open card: your rank; a click shows it in Settings > Général ----
+  const corner = $('.rk-corner');
   let drawn = -1;
-  function drawFaceBadges(r) {
+  function drawCorner(r) {
+    corner.hidden = !since();
     if (r === drawn) return;
     drawn = r;
-    faceBadges.forEach((b) => { b.innerHTML = badge(r); });
+    corner.innerHTML = badge(r); // the app's own drawing
+    corner.title = `Ton rang : ${RANKS[r].name}`;
   }
+  corner.addEventListener('pointerenter', () => play(corner));
+  corner.addEventListener('click', () => {
+    setPage('settings', false, false);
+    setTimeout(() => showCategory('general'), 60);
+  });
 
   // ---- Settings > Général: your rank, since when, the next one, all of them ----
   const box = $('.rk-box');
@@ -3198,7 +3203,7 @@ Promise.resolve(window.lagon.hotkeysState && window.lagon.hotkeysState()).then((
     upTimer = null;
     if (!settingsLoaded || !since()) return;
     const r = current();
-    drawFaceBadges(r);
+    drawCorner(r);
     const seen = Number(settings.rankSeen) || 0;
     if (r > seen) {
       if (paused) return; // when the fullscreen app leaves
@@ -3207,7 +3212,6 @@ Promise.resolve(window.lagon.hotkeysState && window.lagon.hotkeysState()).then((
       window.lagon.setSetting('rankSeen', r);
       showHud({ kind: 'rank', icon: badge(r, ' hud'), title: `Nouveau rang : ${RANKS[r].name}`, sub: `${RANKS[r].label} sur Lagon` }, 5000);
       setTimeout(() => play($('.c-osd')), 250);
-      if (settings.faceStyle === 'rank') setTimeout(() => play(face), 5400);
     }
     const next = RANKS[r + 1];
     if (next) upTimer = setTimeout(check, Math.max(60000, Math.min(next.at - (Date.now() - since()) + 1000, 6 * 3600e3)));
@@ -3219,9 +3223,9 @@ Promise.resolve(window.lagon.hotkeysState && window.lagon.hotkeysState()).then((
     play,
     // called by syncStats: settings arrived / changed, settings page opened
     sync() {
-      const k = `${since()}|${settings.rankSeen}|${settings.faceStyle}`;
+      const k = `${since()}|${settings.rankSeen}`;
       if (k !== key) { key = k; check(); }
-      drawFaceBadges(current());
+      drawCorner(current());
       if (page === 'settings' && island.classList.contains('open')) drawBox();
     },
   };

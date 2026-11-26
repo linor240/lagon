@@ -27,7 +27,6 @@
           <i class="cheek l"></i><i class="cheek r"></i>
           <!-- only drawn by some styles (data-look): cat ears, robot antenna, mouth -->
           <i class="ear l"></i><i class="ear r"></i><i class="ant"></i><i class="mouth"></i>
-          <i class="rank-badge"></i>
           <span class="zzz"><b>z</b><b>z</b><b>z</b></span>
         </div>
       </div>
@@ -90,6 +89,8 @@
       </nav>
 
       <!-- only inside the open card, so it is never visible when the island is closed -->
+      <!-- your seniority rank (the star), top left of the open card: a click shows it in the settings -->
+      <button class="rk-corner" hidden aria-label="Ton rang"></button>
       <button class="gear" title="Paramètres" aria-label="Paramètres">
         <svg viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
         <i class="gear-dot" aria-hidden="true"></i>
@@ -324,7 +325,7 @@
                   <div class="rk-info"><b class="rk-name"></b><span class="rk-since"></span><div class="rk-bar"><i class="rk-fill"></i></div><span class="rk-next"></span></div>
                 </div>
                 <div class="rk-ladder"></div>
-                <span class="f-hint">Plus tu gardes Lagon, plus ton étoile évolue. Passe la souris sur un badge pour le voir bouger. Tu peux mettre ton badge à la place du petit visage : Apparence › Petit visage › Rang.</span>
+                <span class="f-hint">Plus tu gardes Lagon, plus ton étoile évolue. Passe la souris sur un badge pour le voir bouger. Il s’affiche aussi en haut à gauche quand la barre est ouverte.</span>
               </div>
               <div class="s-group">
                 <span class="s-k">Barre</span>
@@ -413,7 +414,6 @@
                     <button data-v="cat"><span class="mini-face" data-look="cat"><span class="face-in"><i class="eye l"></i><i class="eye r"></i><i class="cheek l"></i><i class="cheek r"></i><i class="ear l"></i><i class="ear r"></i><i class="ant"></i><i class="mouth"></i></span></span>Chat</button>
                     <button data-v="robot"><span class="mini-face" data-look="robot"><span class="face-in"><i class="eye l"></i><i class="eye r"></i><i class="cheek l"></i><i class="cheek r"></i><i class="ear l"></i><i class="ear r"></i><i class="ant"></i><i class="mouth"></i></span></span>Robot</button>
                     <button data-v="cute"><span class="mini-face" data-look="cute"><span class="face-in"><i class="eye l"></i><i class="eye r"></i><i class="cheek l"></i><i class="cheek r"></i><i class="ear l"></i><i class="ear r"></i><i class="ant"></i><i class="mouth"></i></span></span>Mignon</button>
-                    <button data-v="rank"><span class="mini-face" data-look="rank"><span class="face-in"><i class="rank-badge"></i></span></span>Rang</button>
                   </div>
                   <span class="f-k">S’endort après</span>
                   <div class="seg" data-setting="faceSleepSeconds" data-type="num">
