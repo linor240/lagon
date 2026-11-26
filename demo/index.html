@@ -10,6 +10,8 @@
   <div id="island" class="idle">
     <!-- colour glows (album / Windows colours); they drift slowly with the "halos" option -->
     <div class="halo" aria-hidden="true"><i class="h1"></i><i class="h2"></i></div>
+    <!-- the music's progress, as a colour filling the closed bar (musicProgress) -->
+    <i class="c-prog" aria-hidden="true"></i>
     <!-- compact pill -->
     <div class="compact">
       <img class="c-art" alt="" />
@@ -25,6 +27,7 @@
           <i class="cheek l"></i><i class="cheek r"></i>
           <!-- only drawn by some styles (data-look): cat ears, robot antenna, mouth -->
           <i class="ear l"></i><i class="ear r"></i><i class="ant"></i><i class="mouth"></i>
+          <i class="rank-badge"></i>
           <span class="zzz"><b>z</b><b>z</b><b>z</b></span>
         </div>
       </div>
@@ -290,6 +293,16 @@
                 <span class="up-text">Version</span>
                 <button class="vl-btn up-btn">Vérifier</button>
               </div>
+              <!-- seniority rank: the badge grows with the time you've had Lagon -->
+              <div class="s-group rk-box" hidden>
+                <span class="s-k">Ton rang</span>
+                <div class="rk-head">
+                  <span class="rk-big"></span>
+                  <div class="rk-info"><b class="rk-name"></b><span class="rk-since"></span><div class="rk-bar"><i class="rk-fill"></i></div><span class="rk-next"></span></div>
+                </div>
+                <div class="rk-ladder"></div>
+                <span class="f-hint">Plus tu gardes Lagon, plus ton casier grossit. Passe la souris sur un badge pour le voir bouger. Tu peux mettre ton badge à la place du petit visage : Apparence › Petit visage › Rang.</span>
+              </div>
               <div class="s-group">
                 <span class="s-k">Barre</span>
                 <label class="sw-row"><span>Mode focus</span><input type="checkbox" data-setting="focusMode" /><i class="sw"></i></label>
@@ -377,6 +390,7 @@
                     <button data-v="cat"><span class="mini-face" data-look="cat"><span class="face-in"><i class="eye l"></i><i class="eye r"></i><i class="cheek l"></i><i class="cheek r"></i><i class="ear l"></i><i class="ear r"></i><i class="ant"></i><i class="mouth"></i></span></span>Chat</button>
                     <button data-v="robot"><span class="mini-face" data-look="robot"><span class="face-in"><i class="eye l"></i><i class="eye r"></i><i class="cheek l"></i><i class="cheek r"></i><i class="ear l"></i><i class="ear r"></i><i class="ant"></i><i class="mouth"></i></span></span>Robot</button>
                     <button data-v="cute"><span class="mini-face" data-look="cute"><span class="face-in"><i class="eye l"></i><i class="eye r"></i><i class="cheek l"></i><i class="cheek r"></i><i class="ear l"></i><i class="ear r"></i><i class="ant"></i><i class="mouth"></i></span></span>Mignon</button>
+                    <button data-v="rank"><span class="mini-face" data-look="rank"><span class="face-in"><i class="rank-badge"></i></span></span>Rang</button>
                   </div>
                   <span class="f-k">S’endort après</span>
                   <div class="seg" data-setting="faceSleepSeconds" data-type="num">
@@ -405,6 +419,7 @@
                 <span class="s-off-note">Module éteint : allume-le dans la liste au-dessus.</span>
                 <div class="s-body">
                   <label class="sw-row"><span>Priorité au lecteur de musique</span><input type="checkbox" data-setting="musicPriority" /><i class="sw"></i></label>
+                  <label class="sw-row"><span>La barre fermée se remplit au fil du morceau</span><input type="checkbox" data-setting="musicProgress" /><i class="sw"></i></label>
                   <span class="f-hint">Spotify, Deezer… passent avant le son du navigateur (YouTube, Twitch…).</span>
                   <label class="sw-row"><span>S’ouvrir à chaque nouveau morceau</span><input type="checkbox" data-setting="peekOnTrack" /><i class="sw"></i></label>
                   <div class="s-sub" data-needs="widgetLyrics">

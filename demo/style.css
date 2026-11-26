@@ -140,6 +140,13 @@ body[data-attach="floating"] #island.focus:not(.open) { border-radius: 6px; }
 #island:not(.idle) > .halo { opacity: 0.6; }
 #island.open:not(.no-media) > .halo { opacity: 1; }
 #island.osd > .halo { opacity: 0.35; }
+/* the song's progress filling the closed bar with its colour (drawProgress in app.js, no transition) */
+.c-prog {
+  position: absolute; left: 0; top: 0; width: 100%; height: 36px; pointer-events: none;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 12%, transparent), color-mix(in srgb, var(--accent) 38%, transparent) 94%, color-mix(in srgb, var(--accent) 62%, transparent));
+  transform-origin: left center; transform: scaleX(0); opacity: 0; transition: opacity 0.4s var(--ease);
+}
+#island.prog-on:not(.open):not(.idle):not(.osd):not(.focus) > .c-prog { opacity: 1; }
 
 /* OLED care (oledShift): the closed bar's content moves 1-2 px every 90 s, see app.js */
 .compact, .c-stats, .ticker > * { translate: var(--ox, 0px) var(--oy, 0px); }
@@ -175,6 +182,9 @@ body[data-attach="floating"] #island.focus:not(.open) { border-radius: 6px; }
   transition: opacity 0.25s var(--ease);
 }
 .c-text.swap { opacity: 0; }
+/* a long song name scrolling once (marqueeCheck): no "…" meanwhile, soft edges */
+.c-text.marquee { text-overflow: clip; mask-image: linear-gradient(90deg, transparent, #000 6px, #000 calc(100% - 10px), transparent); }
+.c-text.marquee .ct-in { display: inline-block; will-change: transform; }
 
 .c-clock {
   display: none;
@@ -1084,7 +1094,7 @@ svg.dcv .cut { stroke: currentColor; stroke-width: 2.4; }
 .carve { stroke: var(--bg); }
 
 /* Settings > little face: one preview per style */
-.face-pick { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.face-pick { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
 .face-pick button { min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 0 6px; border-radius: 10px; background: rgba(var(--fg), 0.06); color: var(--dim); font-size: 11.5px; transition: background 0.15s; }
 .face-pick button:hover { background: rgba(var(--fg), 0.1); }
 .face-pick button.on { background: rgba(var(--fg), 0.16); color: var(--text); font-weight: 600; }
@@ -1224,3 +1234,65 @@ svg.dcv .cut { stroke: currentColor; stroke-width: 2.4; }
 .dlv.done .dv-home { right: calc(50% + 24px); }
 .dlv.done .dv-arrive { opacity: 1; transform: none; }
 .dlv.done .dv-left { max-width: 0; opacity: 0; margin-left: -8px; }
+
+/* ---------- seniority rank: badges (app.js "seniority rank"), the face as a badge, Settings box ---------- */
+svg.rb { display: block; width: 100%; height: 100%; overflow: visible; }
+svg.rb * { transform-box: fill-box; transform-origin: center; }
+.rank-badge { display: none; width: 24px; height: 24px; }
+:is(.face, .mini-face)[data-look="rank"] .face-in > :not(.rank-badge):not(.zzz) { display: none !important; }
+:is(.face, .mini-face)[data-look="rank"] .rank-badge { display: block; }
+.mini-face[data-look="rank"] .rank-badge { width: 22px; height: 22px; }
+.face[data-look="rank"] .rank-badge { transition: opacity 0.6s var(--ease), filter 0.6s var(--ease); }
+.face[data-look="rank"].sleep .rank-badge { opacity: 0.55; filter: saturate(0.4); }
+.o-icon svg.rb { width: 18px; height: 18px; }
+
+.rk-box[hidden] { display: none; }
+.rk-head { display: flex; align-items: center; gap: 14px; }
+.rk-big { flex: none; width: 56px; height: 56px; }
+.rk-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.rk-name { font-size: 16px; font-weight: 700; }
+.rk-since, .rk-next { font-size: 11px; color: var(--dim); }
+.rk-bar { height: 5px; margin-top: 2px; border-radius: 3px; background: var(--track); overflow: hidden; }
+.rk-fill { display: block; height: 100%; width: 0; border-radius: 3px; background: var(--accent); }
+.rk-ladder { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; margin-top: 4px; }
+.rk-step { min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 7px 2px 6px; border-radius: 9px; background: rgba(var(--fg), 0.05); text-align: center; }
+.rk-step svg { width: 28px; height: 28px; }
+.rk-step span { font-size: 10.5px; font-weight: 600; line-height: 1.15; color: var(--dim); overflow-wrap: anywhere; }
+.rk-step small { font-size: 9.5px; color: var(--faint); }
+.rk-step:not(.got) svg { filter: grayscale(1) brightness(0.75); opacity: 0.45; }
+.rk-step.now { background: rgba(var(--fg), 0.12); box-shadow: inset 0 0 0 1px var(--accent); }
+.rk-step.now span { color: var(--text); }
+
+/* each badge's own one-off animation (.play, ~1.4 s) */
+.rb .scan { opacity: 0; }
+.rb .fl { transform-origin: center bottom; }
+.rb.play.r0 .q { animation: rb-wobble 1.2s var(--ease); }
+.rb.play.r0 .hd { animation: rb-bob 1.2s var(--ease); }
+.rb.play.r1 .lid { animation: rb-blink 1.3s var(--ease); }
+.rb.play.r1 .pu { animation: rb-look 1.3s var(--ease); }
+.rb.play.r2 .scan { animation: rb-scan 1.4s var(--ease); }
+.rb.play.r3 .st { animation: rb-spin 1.1s var(--spring); }
+.rb.play.r3 { animation: rb-glow-gold 1.2s var(--ease); }
+.rb.play.r4 { animation: rb-siren 1.4s linear; }
+.rb.play.r4 .ring { animation: rb-pulse 1s var(--ease); }
+.rb.play.r5 .cr { animation: rb-hop 1.1s var(--spring); }
+.rb.play.r5 .sh { animation: rb-shine 1s var(--ease) 0.15s; }
+.rb.play.r6 .st { animation: rb-pop 0.9s var(--spring); }
+.rb.play.r6 .fl { animation: rb-flicker 1.4s linear; }
+.rb.play.r6 .ck { animation: rb-crack 1.4s var(--ease); }
+.rb.play.r6 { animation: rb-fire 1.4s var(--ease); }
+@keyframes rb-wobble { 0%, 100% { transform: rotate(0); } 20% { transform: rotate(-20deg); } 40% { transform: rotate(15deg); } 60% { transform: rotate(-8deg); } 80% { transform: rotate(4deg); } }
+@keyframes rb-bob { 0%, 100% { transform: none; } 30% { transform: translateY(-1px); } }
+@keyframes rb-blink { 0%, 20%, 40%, 100% { transform: scaleY(1); } 10%, 30% { transform: scaleY(0.1); } }
+@keyframes rb-look { 0%, 100% { transform: none; } 50% { transform: translateX(-2px); } 75% { transform: translateX(2px); } }
+@keyframes rb-scan { 0% { transform: translateY(0); opacity: 0; } 12% { opacity: 1; } 50% { transform: translateY(9px); opacity: 1; } 88% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(0); opacity: 0; } }
+@keyframes rb-spin { 0% { transform: rotate(0) scale(1); } 60% { transform: rotate(360deg) scale(1.2); } 100% { transform: rotate(360deg) scale(1); } }
+@keyframes rb-glow-gold { 0%, 100% { filter: none; } 50% { filter: drop-shadow(0 0 3px #f5c542); } }
+@keyframes rb-siren { 0%, 100% { filter: none; } 15%, 45%, 75% { filter: drop-shadow(0 0 3px #ff3b3b); } 30%, 60%, 90% { filter: drop-shadow(0 0 3px #3b82ff); } }
+@keyframes rb-pulse { 0%, 100% { transform: scale(1); } 30% { transform: scale(0.7); } 60% { transform: scale(1.15); } }
+@keyframes rb-hop { 0%, 100% { transform: none; } 25% { transform: translateY(-2px); } 50% { transform: none; } 70% { transform: translateY(-1px); } }
+@keyframes rb-shine { 0% { opacity: 0; transform: translate(-3px, 3px); } 35% { opacity: 0.55; } 100% { opacity: 0; transform: translate(3px, -3px); } }
+@keyframes rb-pop { 0%, 100% { transform: scale(1); } 35% { transform: scale(1.25); } }
+@keyframes rb-flicker { 0%, 100% { transform: scaleY(1); } 20% { transform: scaleY(1.3); } 40% { transform: scaleY(0.85); } 60% { transform: scaleY(1.2); } 80% { transform: scaleY(0.95); } }
+@keyframes rb-crack { 0%, 100% { stroke: #1c1406; } 40%, 60% { stroke: #fff3c4; } }
+@keyframes rb-fire { 0%, 100% { filter: none; } 30%, 70% { filter: drop-shadow(0 0 3px #ff8a2a); } }

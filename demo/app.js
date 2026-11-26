@@ -5,7 +5,7 @@ const el = {
   art: $('.art'), title: $('.title'), artist: $('.artist'), source: $('.source'),
   lyrics: $('.lyrics'), lCur: $('.l-cur'), lNext: $('.l-next'),
   pos: $('.t-pos'), dur: $('.t-dur'), bar: $('.bar'), fill: $('.fill'), knob: $('.knob'),
-  eTime: $('.e-time'), eDate: $('.e-date'),
+  eTime: $('.e-time'), eDate: $('.e-date'), prog: $('.c-prog'),
 };
 
 let state = { active: false };
@@ -13,6 +13,11 @@ let art = '';
 let lyrics = null;      // { key, synced: [{t,text}], plain, instrumental }
 let lyricIdx = -2;
 let compactLine = null;
+let marqueeSong = null;  // the song whose name already got (or is waiting for) its one scroll
+let marqueeFor = null;   // the closed bar's text still to scroll once (null: nothing to do)
+let marqueeTimers = [];  // the running scroll's steps
+let songLine = null;     // "title · artist" of the song playing (the closed bar's text when no lyric line)
+let progPx = -1;         // music progress colour in the closed bar: last width drawn (half pixels)
 let hovering = false;
 let peekTimer = null;
 let settingsLoaded = false; // the saved settings arrived (until then the page uses its defaults)
@@ -29,6 +34,7 @@ let fpsAccess = null; // may this Windows account read the FPS (null: not asked 
 let fpsGrant = null; // answer to "Autoriser les FPS": asking, ok, already, cancelled, error
 let notesUi = null; // the notes tab ({ sync, quickEnd }), set up at the end of the file
 let quickOn = false; // a quick note (shortcut) is being typed
+let rankUi = null; // the seniority rank ({ sync, play }), set up at the end of the file
 // replaced by the saved settings as soon as the main process answers
 let settings = {
   openMode: 'hover', position: 'center', peekOnTrack: true, compactLyrics: true, volumeOsd: true, idleFace: true, faceSleepSeconds: 120,
@@ -46,6 +52,7 @@ function setOpen(open) {
   if (open) hideOsd();
   if (!open) {
     if (quickOn && notesUi) notesUi.quickEnd(false); // closed some other way: no focus juggling
+    if (compactLine && compactLine === songLine) marqueeFor = compactLine; // a long song name scrolls again once closed
     window.lagon.keyboard(false);
     // settings are a detour: next time the island opens on the last real page
     if (page === 'settings') setTimeout(() => { if (!island.classList.contains('open')) setPage(userPage, true); }, 450);
@@ -177,6 +184,8 @@ function syncStats() {
   syncUsage();
   if (game) game.sync();
   if (notesUi) notesUi.sync();
+  if (marqueeTimers.length && !marqueeShown()) marqueeStop(); else marqueeCheck();
+  if (rankUi) rankUi.sync();
   const fpsPinned = !!(settings.fpsCounter && settings.barFps) && !settings.focusMode && !paused;
   const fpsWant = !!settings.fpsCounter && !paused && ((island.classList.contains('open') && page === 'pc') || fpsPinned);
   if (fpsWant !== fpsOn) {
@@ -279,8 +288,9 @@ function currentPos() {
 
 function tick() {
   updateClock();
-  if (!state.active) return;
+  if (!state.active) { drawProgress(-1); return; }
   const pos = currentPos();
+  drawProgress(pos);
   if (island.classList.contains('open')) { // the progress bar is only visible in the open card
     const pct = state.durationMs > 0 ? (pos / state.durationMs) * 100 : 0;
     el.fill.style.width = pct + '%';
@@ -288,6 +298,20 @@ function tick() {
     el.pos.textContent = fmt(pos);
   }
   updateLyrics(pos);
+}
+
+// The closed bar fills with the music's colour as the song goes on (musicProgress). Moved in half-pixel
+// steps without a transition (about twice a second for a 3-minute song): a never-ending transition
+// would redraw the screen at its refresh rate the whole time.
+function drawProgress(pos) {
+  const on = pos >= 0 && settings.musicProgress !== false && state.durationMs > 0;
+  island.classList.toggle('prog-on', on);
+  if (!on || island.classList.contains('open')) return;
+  const p = Math.min(1, Math.max(0, pos / state.durationMs));
+  const px = Math.round(p * island.offsetWidth * 2); // half pixels of the bar
+  if (px === progPx) return;
+  progPx = px;
+  el.prog.style.transform = `scaleX(${p.toFixed(4)})`;
 }
 
 function updateLyrics(pos) {
@@ -323,16 +347,64 @@ function updateLyrics(pos) {
 
   // compact pill: the current lyric line if there is one, otherwise the song
   const hasLine = settings.widgetLyrics && settings.compactLyrics && lyrics && lyrics.synced && lyrics.synced.length && idx >= 0 && lyrics.synced[idx].text;
-  const line = hasLine ? lyrics.synced[idx].text : `${state.title}${state.artist ? ' · ' + state.artist : ''}`;
+  songLine = `${state.title}${state.artist ? ' · ' + state.artist : ''}`;
+  const line = hasLine ? lyrics.synced[idx].text : songLine;
   if (line !== compactLine) {
     compactLine = line;
     el.cText.classList.add('swap');
+    // a new song: its name scrolls once if it doesn't fit (see marqueeCheck)
+    const song = trackKey(state);
+    if (song !== marqueeSong) { marqueeSong = song; marqueeFor = hasLine ? null : line; }
     setTimeout(() => {
-      el.cText.textContent = line;
+      marqueeStop();
+      const inner = document.createElement('span');
+      inner.className = 'ct-in';
+      inner.textContent = line;
+      el.cText.replaceChildren(inner);
       el.cText.classList.toggle('lyric', !!hasLine); // lyric lines use the lyrics font
       el.cText.classList.remove('swap');
+      marqueeCheck();
     }, 120);
   }
+}
+
+// ---------- long song names scroll once (closed bar) ----------
+// When a song starts and "title · artist" doesn't fit, it slides slowly to its end, waits, then comes
+// back with its "…". Once per song, only while the closed bar shows it (one CSS transition: nothing
+// runs the rest of the time). Stopped if the bar opens, a pop-up shows or a lyric line replaces it.
+function marqueeShown() { // a function (hoisted): syncStats runs before this line on load
+  return !paused && !settings.focusMode && !island.classList.contains('open')
+    && !island.classList.contains('osd') && !island.classList.contains('idle');
+}
+function marqueeStop() {
+  marqueeTimers.forEach(clearTimeout);
+  marqueeTimers = [];
+  el.cText.classList.remove('marquee');
+  const inner = el.cText.firstElementChild;
+  if (inner) { inner.style.transition = 'none'; inner.style.transform = ''; }
+}
+function marqueeCheck() {
+  if (!marqueeFor || marqueeTimers.length || compactLine !== marqueeFor || !marqueeShown()) return;
+  const inner = el.cText.firstElementChild;
+  if (!inner || !el.cText.clientWidth) return; // not laid out yet
+  marqueeFor = null;
+  const step = (ms, fn) => marqueeTimers.push(setTimeout(fn, ms));
+  // measured when it starts, not now: the bar may still be growing (idle -> music) at this moment
+  step(900, () => {
+    const r = document.createRange();
+    r.selectNodeContents(inner);
+    const full = r.getBoundingClientRect().width; // the whole text, even the part hidden by "…"
+    const box = el.cText.clientWidth;
+    if (!marqueeShown() || full <= box + 1) { marqueeStop(); return; } // fits: nothing to scroll
+    const dist = Math.ceil(full - box + 12);
+    const dur = Math.max(2.5, dist / 30); // ~30 px a second, easy to read
+    el.cText.classList.add('marquee');
+    void inner.offsetWidth; // start the transition from 0
+    inner.style.transition = `transform ${dur}s linear`;
+    inner.style.transform = `translateX(${-dist}px)`;
+    step(dur * 1000 + 1400, () => el.cText.classList.add('swap')); // fade out at the end…
+    step(dur * 1000 + 1700, () => { marqueeStop(); el.cText.classList.remove('swap'); }); // …back at the start
+  });
 }
 
 function updateClock() {
@@ -651,6 +723,7 @@ let osdBase = 290; // the closed bar's width when the pop-up started
 let calmTimer = null;
 function showHud(h, ms = 1800) {
   if (island.classList.contains('open') || settings.focusMode) return;
+  if (marqueeTimers.length) { marqueeStop(); marqueeFor = compactLine; } // cut by the pop-up: again after it
   hudKind = h.kind;
   if (!island.classList.contains('osd')) osdBase = island.offsetWidth;
   clearTimeout(calmTimer);
@@ -669,6 +742,7 @@ function hideOsd() {
   island.classList.remove('osd', 'osd-text', 'osd-wrap');
   clearTimeout(calmTimer);
   calmTimer = setTimeout(() => island.classList.remove('calm'), 500); // back to the usual size softly too
+  setTimeout(marqueeCheck, 450); // a song name waiting for its scroll (the bar is back to its size)
 }
 
 const volumeHud = () => ({
@@ -1183,6 +1257,8 @@ function faceAct() {
   if (paused) return;
   if (!faceVisible() || asleep) return;
   const r = Math.random();
+  // the seniority badge instead of the face: now and then its own little animation
+  if (settings.faceStyle === 'rank') { if (r < 0.2 && rankUi) rankUi.play(face); return; }
   if (r < 0.42) blink();
   else if (r < 0.58) { blink(); setTimeout(blink, 240); }   // double blink
   else if (r < 0.68) momentary('wink', 420);
@@ -1232,7 +1308,7 @@ window.lagon.onAway((away) => {
     sequence([
       [0, () => momentary('surprised', 650)],
       [500, () => island.classList.remove('face-center')],
-      [1150, () => momentary('happy', 1300)],
+      [1150, () => { momentary('happy', 1300); if (settings.faceStyle === 'rank' && rankUi) rankUi.play(face); }],
     ]);
   }
 });
@@ -2957,4 +3033,135 @@ Promise.resolve(window.lagon.hotkeysState && window.lagon.hotkeysState()).then((
     preview();
     remind();
   });
+})();
+
+// ---------- seniority rank ("casier": the longer you've had Lagon, the bigger your record) ----------
+// `since` (first launch, filled by the app from the data folder's creation date) gives the rank;
+// the badges are Lagon's own drawings (an original take on a "criminal profile", no game art).
+// Each badge has a short one-off animation (`.play`, about 1.4 s): played by the face when the
+// badge replaces it (faceStyle "rank"), on hover in the settings, in the rank-up pop-up. Nothing loops.
+(() => {
+  const DAY = 864e5;
+  const RANKS = [
+    { name: 'Inconnu', at: 0, label: 'dès le départ' },
+    { name: 'Repéré', at: DAY, label: '1 jour' },
+    { name: 'Fiché', at: 7 * DAY, label: '1 semaine' },
+    { name: 'Recherché', at: 30 * DAY, label: '1 mois' },
+    { name: 'Ennemi public', at: 91 * DAY, label: '3 mois' },
+    { name: 'Intouchable', at: 182 * DAY, label: '6 mois' },
+    { name: 'Légende', at: 365 * DAY, label: '1 an' },
+  ];
+  const SHIELD = 'M12 2.5 19.5 5.2v6c0 4.8-3.2 8.4-7.5 10.3C7.7 19.6 4.5 16 4.5 11.2v-6Z';
+  // fill, outline, then the symbol of each rank (classes = the parts that move in .play)
+  const ART = [
+    ['#34343b', '#8b8b95', '<circle class="hd" cx="12" cy="10.3" r="3.6" fill="#8b8b95"/><path d="M7.4 17.6c.9-2.4 2.6-3.6 4.6-3.6s3.7 1.2 4.6 3.6" fill="none" stroke="#8b8b95" stroke-width="1.6" stroke-linecap="round"/><text class="q" x="12" y="12.4" font-size="5.6" font-weight="800" text-anchor="middle" fill="#34343b" font-family="Segoe UI, sans-serif">?</text>'],
+    ['#1f3350', '#6fa8ff', '<g class="lid"><path d="M6.6 11.6C8.1 9.1 9.9 8 12 8s3.9 1.1 5.4 3.6C15.9 14.1 14.1 15.2 12 15.2s-3.9-1.1-5.4-3.6Z" fill="#e3ecff"/><circle class="pu" cx="12" cy="11.6" r="2.2" fill="#2f6fe0"/><circle class="pu" cx="12.7" cy="10.9" r=".6" fill="#fff"/></g>'],
+    ['#153a3b', '#3fd3c0', '<g fill="none" stroke="#9ff5ea" stroke-width="1.15" stroke-linecap="round"><path d="M8.3 15.6c-.6-1.1-.9-2.3-.9-3.7a4.6 4.6 0 0 1 9.2 0c0 1.6-.3 2.9-.8 4"/><path d="M10.3 16.6c-.5-1.3-.8-2.7-.8-4.6a2.5 2.5 0 0 1 5 0c0 2-.3 3.4-.9 4.7"/><path d="M12 12.1v5.2"/></g><rect class="scan" x="6.2" y="7" width="11.6" height="1.3" rx=".6" fill="#3fd3c0"/>'],
+    ['#4a3812', '#f5c542', '<path class="st" d="M12 6.4l1.7 3.5 3.8.5-2.8 2.6.7 3.8L12 15l-3.4 1.8.7-3.8-2.8-2.6 3.8-.5Z" fill="#f5c542"/>'],
+    ['#4a1a14', '#ff6a3d', '<g fill="none" stroke="#ffb59e" stroke-width="1.3" stroke-linecap="round"><circle class="ring" cx="12" cy="12" r="4.4"/><path d="M12 5.8v2.4M12 15.8v2.4M5.8 12h2.4M15.8 12h2.4"/></g><circle cx="12" cy="12" r="1.3" fill="#ff6a3d"/>'],
+    ['#2d1a4a', '#b98bff', '<path class="cr" d="M7 15.6h10l1-6.4-3.3 2.5L12 7.4l-2.7 4.3L6 9.2Z" fill="#dcc2ff"/><circle cx="12" cy="13.4" r="1" fill="#2d1a4a"/><path class="sh" d="M9 15 15 9" stroke="#fff" stroke-width="2.2" stroke-linecap="round" opacity="0"/>'],
+    ['#1c1406', '#ffd76a', '<path class="st" d="M12 6.2l1.8 3.6 4 .6-2.9 2.8.7 4L12 15.3l-3.6 1.9.7-4-2.9-2.8 4-.6Z" fill="#ffd76a"/><path class="ck" d="M13.6 3.4l-1.3 3.4 1.6 2.1-1.3 2.8 1 2.4" fill="none" stroke="#1c1406" stroke-width="1"/><path class="fl" d="M8.6 21c-1.1-1.4-.6-2.7.3-3.6.1.9.6 1.3 1.1 1.5-.1-1.3.4-2.4 1.4-3.2 0 1.3.6 2.1 1.4 2.6.3-.6.3-1.1.1-1.6 1.1.9 1.6 2.3.8 4.3" fill="#ff8a2a" opacity=".9"/>'],
+  ];
+  // one SVG string per rank (app's own drawing: safe for innerHTML)
+  const badge = (i, extra = '') => {
+    const [fill, line, body] = ART[i];
+    return `<svg class="rb r${i}${extra}" viewBox="0 0 24 24" aria-hidden="true"><path class="sd" d="${SHIELD}" fill="${fill}" stroke="${line}" stroke-width="1.5" stroke-linejoin="round"/>${body}</svg>`;
+  };
+  const rankAt = (age) => { let r = 0; RANKS.forEach((k, i) => { if (age >= k.at) r = i; }); return r; };
+  const since = () => Number(settings.since) || 0;
+  const current = () => (since() ? rankAt(Date.now() - since()) : 0);
+
+  // replays a badge's animation (restarting it if it was already playing)
+  function play(host) {
+    const svgEl = host && host.querySelector('svg.rb');
+    if (!svgEl) return;
+    svgEl.classList.remove('play');
+    void svgEl.getBoundingClientRect(); // restart the CSS animation
+    svgEl.classList.add('play');
+    clearTimeout(svgEl._t);
+    svgEl._t = setTimeout(() => svgEl.classList.remove('play'), 1600);
+  }
+
+  // ---- the face's badge and the "Rang" preview in Settings > Apparence ----
+  const faceBadges = [...document.querySelectorAll('.rank-badge')];
+  let drawn = -1;
+  function drawFaceBadges(r) {
+    if (r === drawn) return;
+    drawn = r;
+    faceBadges.forEach((b) => { b.innerHTML = badge(r); });
+  }
+
+  // ---- Settings > Général: your rank, since when, the next one, all of them ----
+  const box = $('.rk-box');
+  const big = $('.rk-big');
+  const ladder = $('.rk-ladder');
+  RANKS.forEach((k, i) => {
+    const b = document.createElement('div');
+    b.className = 'rk-step';
+    b.innerHTML = badge(i); // the app's own drawing
+    const n = document.createElement('span');
+    n.textContent = k.name;
+    const t = document.createElement('small');
+    t.textContent = k.label;
+    b.append(n, t);
+    b.addEventListener('pointerenter', () => play(b));
+    ladder.append(b);
+  });
+  big.addEventListener('pointerenter', () => play(big));
+  const fmtDate = (ms) => new Date(ms).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+  function inWords(ms) {
+    const h = Math.ceil(ms / 3600e3);
+    if (h < 24) return `${h} h`;
+    const d = Math.ceil(ms / DAY);
+    return d < 60 ? `${d} jour${d > 1 ? 's' : ''}` : `${Math.round(d / 30)} mois`;
+  }
+  function drawBox() {
+    const r = current();
+    const age = since() ? Date.now() - since() : 0;
+    if (big.dataset.r !== String(r)) { big.dataset.r = r; big.innerHTML = badge(r); } // redrawn only on a new rank: keeps a hover animation going
+    $('.rk-name').textContent = RANKS[r].name;
+    const days = Math.floor(age / DAY);
+    $('.rk-since').textContent = since() ? `Sur Lagon depuis le ${fmtDate(since())} (${days > 0 ? `${days} jour${days > 1 ? 's' : ''}` : 'aujourd’hui'})` : '';
+    const next = RANKS[r + 1];
+    $('.rk-next').textContent = next ? `Prochain rang : ${next.name} dans ${inWords(next.at - age)}` : 'Rang maximum atteint';
+    const p = next ? (age - RANKS[r].at) / (next.at - RANKS[r].at) : 1;
+    $('.rk-fill').style.width = (Math.max(0, Math.min(1, p)) * 100).toFixed(1) + '%';
+    [...ladder.children].forEach((el, i) => { el.classList.toggle('got', i <= r); el.classList.toggle('now', i === r); });
+    box.hidden = !since();
+  }
+
+  // ---- rank-up: one pop-up per new rank (remembered in rankSeen), timer to the next one ----
+  let upTimer = null;
+  function check() {
+    clearTimeout(upTimer);
+    upTimer = null;
+    if (!settingsLoaded || !since()) return;
+    const r = current();
+    drawFaceBadges(r);
+    const seen = Number(settings.rankSeen) || 0;
+    if (r > seen) {
+      if (paused) return; // when the fullscreen app leaves
+      if (island.classList.contains('open') || settings.focusMode) { upTimer = setTimeout(check, settings.focusMode ? 60000 : 4000); return; }
+      settings.rankSeen = r;
+      window.lagon.setSetting('rankSeen', r);
+      showHud({ kind: 'rank', icon: badge(r, ' hud'), title: `Nouveau rang : ${RANKS[r].name}`, sub: `${RANKS[r].label} sur Lagon` }, 5000);
+      setTimeout(() => play($('.c-osd')), 250);
+      if (settings.faceStyle === 'rank') setTimeout(() => play(face), 5400);
+    }
+    const next = RANKS[r + 1];
+    if (next) upTimer = setTimeout(check, Math.max(60000, Math.min(next.at - (Date.now() - since()) + 1000, 6 * 3600e3)));
+  }
+  window.lagon.onPaused((on) => { if (!on) setTimeout(check, 2000); });
+
+  let key = '';
+  rankUi = {
+    play,
+    // called by syncStats: settings arrived / changed, settings page opened
+    sync() {
+      const k = `${since()}|${settings.rankSeen}|${settings.faceStyle}`;
+      if (k !== key) { key = k; check(); }
+      drawFaceBadges(current());
+      if (page === 'settings' && island.classList.contains('open')) drawBox();
+    },
+  };
 })();
