@@ -35,6 +35,7 @@ let fpsGrant = null; // answer to "Autoriser les FPS": asking, ok, already, canc
 let notesUi = null; // the notes tab ({ sync, quickEnd }), set up at the end of the file
 let quickOn = false; // a quick note (shortcut) is being typed
 let rankUi = null; // the seniority rank ({ sync, play }), set up at the end of the file
+let clipsUi = null; // the clips tab ({ sync }), set up at the end of the file
 // replaced by the saved settings as soon as the main process answers
 let settings = {
   openMode: 'hover', position: 'center', peekOnTrack: true, compactLyrics: true, volumeOsd: true, idleFace: true, faceSleepSeconds: 120,
@@ -118,7 +119,7 @@ function peek() {
 
 // ---------- pages ----------
 // in the tabs' order (applyTabOrder rearranges it in place); settings always last
-const PAGES = ['music', 'sound', 'pc', 'time', 'notes', 'twitch', 'obs', 'valorant', 'discord', 'game', 'settings'];
+const PAGES = ['music', 'sound', 'pc', 'time', 'notes', 'twitch', 'obs', 'valorant', 'discord', 'game', 'clips', 'settings'];
 let page = 'music';
 let userPage = 'music'; // the page the user picked last; peeks and settings don't change it
 const pagesEl = $('.pages');
@@ -186,6 +187,7 @@ function syncStats() {
   if (notesUi) notesUi.sync();
   if (marqueeTimers.length && !marqueeShown()) marqueeStop(); else marqueeCheck();
   if (rankUi) rankUi.sync();
+  if (clipsUi) clipsUi.sync();
   const fpsPinned = !!(settings.fpsCounter && settings.barFps) && !settings.focusMode && !paused;
   const fpsWant = !!settings.fpsCounter && !paused && ((island.classList.contains('open') && page === 'pc') || fpsPinned);
   if (fpsWant !== fpsOn) {
@@ -991,6 +993,7 @@ const MODULES = [
   ['valorant', 'widgetValorant', 'Valorant', 'Rang, RR et dernier match'],
   ['discord', 'widgetDiscord', 'Discord', 'Ton vocal, micro et sourdine'],
   ['game', 'widgetGame', 'Jeu', 'Saut de gravité et la Roue'],
+  ['clips', 'widgetClips', 'Clips', 'Dernier clip NVIDIA et clip à la voix'],
 ];
 const ACCOUNT_WIDGETS = ['widgetTwitch', 'widgetObs', 'widgetDiscord', 'widgetValorant'];
 const GRIP_SVG = '<svg viewBox="0 0 24 24"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg>';
@@ -1326,7 +1329,7 @@ function syncFace() {
 let faceSyncTimer = setInterval(syncFace, 250);
 
 // ---------- widgets on / off ----------
-const WIDGET_OF_PAGE = { music: 'widgetMusic', sound: 'widgetSound', pc: 'widgetPc', time: 'widgetTime', twitch: 'widgetTwitch', valorant: 'widgetValorant', discord: 'widgetDiscord', obs: 'widgetObs', game: 'widgetGame', notes: 'widgetNotes' };
+const WIDGET_OF_PAGE = { music: 'widgetMusic', sound: 'widgetSound', pc: 'widgetPc', time: 'widgetTime', twitch: 'widgetTwitch', valorant: 'widgetValorant', discord: 'widgetDiscord', obs: 'widgetObs', game: 'widgetGame', notes: 'widgetNotes', clips: 'widgetClips' };
 const pageEnabled = (name) => !WIDGET_OF_PAGE[name] || !!settings[WIDGET_OF_PAGE[name]];
 
 function applyWidgets() {
@@ -3042,30 +3045,88 @@ Promise.resolve(window.lagon.hotkeysState && window.lagon.hotkeysState()).then((
 // badge replaces it (faceStyle "rank"), on hover in the settings, in the rank-up pop-up. Nothing loops.
 (() => {
   const DAY = 864e5;
+  // A star that grows up (the user's idea, 0.17.0): one minimalist look (flat bold shapes, a tilted orbit
+  // ring, four-point sparkles, like the reference picture), colours richer at each step.
   const RANKS = [
-    { name: 'Inconnu', at: 0, label: 'dès le départ' },
-    { name: 'Repéré', at: DAY, label: '1 jour' },
-    { name: 'Fiché', at: 7 * DAY, label: '1 semaine' },
-    { name: 'Recherché', at: 30 * DAY, label: '1 mois' },
-    { name: 'Ennemi public', at: 91 * DAY, label: '3 mois' },
-    { name: 'Intouchable', at: 182 * DAY, label: '6 mois' },
-    { name: 'Légende', at: 365 * DAY, label: '1 an' },
+    { name: 'Étoile naissante', at: 0, label: 'dès le départ' },
+    { name: 'Soleil', at: DAY, label: '1 jour' },
+    { name: 'Étoile blanche', at: 7 * DAY, label: '1 semaine' },
+    { name: 'Géante bleue', at: 30 * DAY, label: '1 mois' },
+    { name: 'Pulsar', at: 91 * DAY, label: '3 mois' },
+    { name: 'Supernova', at: 182 * DAY, label: '6 mois' },
+    { name: 'Trou noir', at: 365 * DAY, label: '1 an' },
   ];
-  const SHIELD = 'M12 2.5 19.5 5.2v6c0 4.8-3.2 8.4-7.5 10.3C7.7 19.6 4.5 16 4.5 11.2v-6Z';
-  // fill, outline, then the symbol of each rank (classes = the parts that move in .play)
+  // four-point sparkle (concave sides)
+  const spark = (x, y, r) => `M${x} ${y - r}Q${x} ${y} ${x + r} ${y}Q${x} ${y} ${x} ${y + r}Q${x} ${y} ${x - r} ${y}Q${x} ${y} ${x} ${y - r}Z`;
+  const sparks = (fill, list) => `<path class="sk" d="${list.map((v) => spark(...v)).join('')}" fill="${fill}"/>`;
+  // the orbit ring, tilted 15°: its back half is drawn before the star, its front half after
+  const RING_BACK = 'M1.86 14.72A10.5 2.7 -15 0 1 22.14 9.28';
+  const RING_FRONT = 'M1.86 14.72A10.5 2.7 -15 0 0 22.14 9.28';
+  const grad = (id, stops, radial) => radial
+    ? `<radialGradient id="${id}" cx=".38" cy=".34" r=".75">${stops}</radialGradient>`
+    : `<linearGradient id="${id}" x1="0" y1="0" x2="1" y2="1">${stops}</linearGradient>`;
+  const st = (...c) => c.map((col, i) => `<stop offset="${(i / (c.length - 1)).toFixed(2)}" stop-color="${col}"/>`).join('');
+  const body = (r, fill) => `<circle class="bd" cx="12" cy="12" r="${r}" fill="${fill}" stroke="#000" stroke-opacity=".12" stroke-width=".5"/>`;
+  // eight short rays around the sun (a group: it turns in the animation)
+  const rays = (r1, r2, col, w) => {
+    let d = '';
+    for (let k = 0; k < 8; k++) {
+      const a = (k * Math.PI) / 4;
+      d += `M${(12 + r1 * Math.cos(a)).toFixed(2)} ${(12 + r1 * Math.sin(a)).toFixed(2)}L${(12 + r2 * Math.cos(a)).toFixed(2)} ${(12 + r2 * Math.sin(a)).toFixed(2)}`;
+    }
+    return `<path class="ry" d="${d}" stroke="${col}" stroke-width="${w}" stroke-linecap="round"/>`;
+  };
+  // the supernova's burst: a sharp eight-point star
+  const burst = (() => {
+    let d = '';
+    for (let k = 0; k < 16; k++) {
+      const a = (k * Math.PI) / 8 - Math.PI / 2;
+      const r = k % 2 ? 4.2 : 10.6;
+      d += `${k ? 'L' : 'M'}${(12 + r * Math.cos(a)).toFixed(2)} ${(12 + r * Math.sin(a)).toFixed(2)}`;
+    }
+    return d + 'Z';
+  })();
   const ART = [
-    ['#34343b', '#8b8b95', '<circle class="hd" cx="12" cy="10.3" r="3.6" fill="#8b8b95"/><path d="M7.4 17.6c.9-2.4 2.6-3.6 4.6-3.6s3.7 1.2 4.6 3.6" fill="none" stroke="#8b8b95" stroke-width="1.6" stroke-linecap="round"/><text class="q" x="12" y="12.4" font-size="5.6" font-weight="800" text-anchor="middle" fill="#34343b" font-family="Segoe UI, sans-serif">?</text>'],
-    ['#1f3350', '#6fa8ff', '<g class="lid"><path d="M6.6 11.6C8.1 9.1 9.9 8 12 8s3.9 1.1 5.4 3.6C15.9 14.1 14.1 15.2 12 15.2s-3.9-1.1-5.4-3.6Z" fill="#e3ecff"/><circle class="pu" cx="12" cy="11.6" r="2.2" fill="#2f6fe0"/><circle class="pu" cx="12.7" cy="10.9" r=".6" fill="#fff"/></g>'],
-    ['#153a3b', '#3fd3c0', '<g fill="none" stroke="#9ff5ea" stroke-width="1.15" stroke-linecap="round"><path d="M8.3 15.6c-.6-1.1-.9-2.3-.9-3.7a4.6 4.6 0 0 1 9.2 0c0 1.6-.3 2.9-.8 4"/><path d="M10.3 16.6c-.5-1.3-.8-2.7-.8-4.6a2.5 2.5 0 0 1 5 0c0 2-.3 3.4-.9 4.7"/><path d="M12 12.1v5.2"/></g><rect class="scan" x="6.2" y="7" width="11.6" height="1.3" rx=".6" fill="#3fd3c0"/>'],
-    ['#4a3812', '#f5c542', '<path class="st" d="M12 6.4l1.7 3.5 3.8.5-2.8 2.6.7 3.8L12 15l-3.4 1.8.7-3.8-2.8-2.6 3.8-.5Z" fill="#f5c542"/>'],
-    ['#4a1a14', '#ff6a3d', '<g fill="none" stroke="#ffb59e" stroke-width="1.3" stroke-linecap="round"><circle class="ring" cx="12" cy="12" r="4.4"/><path d="M12 5.8v2.4M12 15.8v2.4M5.8 12h2.4M15.8 12h2.4"/></g><circle cx="12" cy="12" r="1.3" fill="#ff6a3d"/>'],
-    ['#2d1a4a', '#b98bff', '<path class="cr" d="M7 15.6h10l1-6.4-3.3 2.5L12 7.4l-2.7 4.3L6 9.2Z" fill="#dcc2ff"/><circle cx="12" cy="13.4" r="1" fill="#2d1a4a"/><path class="sh" d="M9 15 15 9" stroke="#fff" stroke-width="2.2" stroke-linecap="round" opacity="0"/>'],
-    ['#1c1406', '#ffd76a', '<path class="st" d="M12 6.2l1.8 3.6 4 .6-2.9 2.8.7 4L12 15.3l-3.6 1.9.7-4-2.9-2.8 4-.6Z" fill="#ffd76a"/><path class="ck" d="M13.6 3.4l-1.3 3.4 1.6 2.1-1.3 2.8 1 2.4" fill="none" stroke="#1c1406" stroke-width="1"/><path class="fl" d="M8.6 21c-1.1-1.4-.6-2.7.3-3.6.1.9.6 1.3 1.1 1.5-.1-1.3.4-2.4 1.4-3.2 0 1.3.6 2.1 1.4 2.6.3-.6.3-1.1.1-1.6 1.1.9 1.6 2.3.8 4.3" fill="#ff8a2a" opacity=".9"/>'],
+    // 0 Étoile naissante: a small pale sun
+    `<defs>${grad('rg0', st('#ffd9b0', '#e8925a', '#a8522a'), true)}</defs>`
+      + body(4.6, 'url(#rg0)') + sparks('#e8b48f', [[18.6, 6.2, 1.6]]),
+    // 1 Soleil: golden, with its rays
+    `<defs>${grad('rg1', st('#fff7c9', '#ffc93a', '#f08a00'), true)}</defs>`
+      + rays(7.2, 9.6, '#ffc93a', 1.5) + body(5.6, 'url(#rg1)') + sparks('#ffe08a', [[19.6, 4.6, 1.7]]),
+    // 2 Étoile blanche: white-hot, a halo
+    `<defs>${grad('rg2', st('#ffffff', '#fff4dc', '#ffd9a0'), true)}</defs>`
+      + `<circle class="hl" cx="12" cy="12" r="8.6" fill="none" stroke="#ffe2a3" stroke-opacity=".75" stroke-width=".8"/>`
+      + body(6, 'url(#rg2)') + sparks('#fff6e0', [[19.8, 4.4, 1.8], [4.4, 19.4, 1.3]]),
+    // 3 Géante bleue: blue, its first orbit ring
+    `<defs>${grad('rg3', st('#eaf6ff', '#5cb4ff', '#1f5fd6'), true)}</defs>`
+      + `<path d="${RING_BACK}" fill="none" stroke="#9fd2ff" stroke-width="1.2" stroke-linecap="round"/>`
+      + body(6.2, 'url(#rg3)')
+      + `<path class="rn" d="${RING_FRONT}" fill="none" stroke="#9fd2ff" stroke-width="1.2" stroke-linecap="round"/>`
+      + sparks('#cfe9ff', [[20, 4.4, 1.8], [4, 19.6, 1.4]]),
+    // 4 Pulsar: a small violet-white core sending two beams of light (they sweep like a lighthouse)
+    `<defs>${grad('rg4', st('#ffffff', '#cdb8ff', '#6a3fe0'), true)}<radialGradient id="rg4b" cx=".5" cy=".5" r=".5"><stop offset=".2" stop-color="#ffffff"/><stop offset=".55" stop-color="#b79dff" stop-opacity=".95"/><stop offset="1" stop-color="#7f5cff" stop-opacity=".15"/></radialGradient></defs>`
+      + `<path class="bm" d="M12 12 17.3 1.6 22.4 6.7Z M12 12 6.7 22.4 1.6 17.3Z" fill="url(#rg4b)"/>`
+      + `<circle cx="12" cy="12" r="6.6" fill="none" stroke="#c4aaff" stroke-opacity=".6" stroke-width=".8"/>`
+      + body(4.7, 'url(#rg4)') + sparks('#e4dbff', [[4.6, 5, 1.7], [19.6, 19, 1.4], [20.4, 11.4, 1]]),
+    // 5 Supernova: a magenta and gold burst around a white core
+    `<defs>${grad('rg5', st('#fff2b0', '#ff5fa2', '#8b1fd6'))}${grad('rg5c', st('#ffffff', '#ffe7f3', '#ffb3d6'), true)}</defs>`
+      + `<path class="bu" d="${burst}" fill="url(#rg5)" stroke-linejoin="round"/>`
+      + `<circle class="bd" cx="12" cy="12" r="3.6" fill="url(#rg5c)"/>`
+      + sparks('#ffd2ea', [[20.6, 4.2, 1.6], [3.6, 19.8, 1.4], [20.2, 19.4, 1.1]]),
+    // 6 Trou noir: a black sphere, a golden iridescent disk, a thin light ring
+    `<defs>${grad('rg6', st('#ffe08a', '#ff8ad0', '#7ad8ff', '#ffd25e'))}</defs>`
+      + `<path d="${RING_BACK}" fill="none" stroke="url(#rg6)" stroke-width="2.2" stroke-linecap="round"/>`
+      + `<circle cx="12" cy="12" r="6.4" fill="none" stroke="#ffe7a8" stroke-opacity=".8" stroke-width=".7"/>`
+      + body(5.7, '#07070b')
+      + `<path class="rn" d="${RING_FRONT}" fill="none" stroke="url(#rg6)" stroke-width="2.2" stroke-linecap="round"/>`
+      + sparks('#ffe7a8', [[20.4, 4, 1.9], [3.8, 20, 1.5], [19.4, 20, 1.1]]),
   ];
-  // one SVG string per rank (app's own drawing: safe for innerHTML)
+  // gradient ids made unique per drawing: a url(#id) would otherwise pick the first copy in the page,
+  // and a copy inside something hidden (the face's badge) draws nothing (the Secrète star came out empty)
+  let uid = 0;
   const badge = (i, extra = '') => {
-    const [fill, line, body] = ART[i];
-    return `<svg class="rb r${i}${extra}" viewBox="0 0 24 24" aria-hidden="true"><path class="sd" d="${SHIELD}" fill="${fill}" stroke="${line}" stroke-width="1.5" stroke-linejoin="round"/>${body}</svg>`;
+    const u = ++uid;
+    return `<svg class="rb r${i}${extra}" viewBox="0 0 24 24" aria-hidden="true">${ART[i].replace(/(id="|url\(#)(rg\w+)/g, `$1$2-${u}`)}</svg>`;
   };
   const rankAt = (age) => { let r = 0; RANKS.forEach((k, i) => { if (age >= k.at) r = i; }); return r; };
   const since = () => Number(settings.since) || 0;
@@ -3164,4 +3225,89 @@ Promise.resolve(window.lagon.hotkeysState && window.lagon.hotkeysState()).then((
       if (page === 'settings' && island.classList.contains('open')) drawBox();
     },
   };
+})();
+
+// ---------- voice clip ("Lagon clip that") ----------
+// The helper listens offline (Windows' speech recognizer); the app presses NVIDIA's own "save instant
+// replay" shortcut, read from NVIDIA's settings. Here: the status in Settings > Shortcuts, the last
+// time the phrase was heard (to see how sure the recognizer was), and a pop-up when a clip is asked.
+(() => {
+  // the same pieces exist twice (Settings > Shortcuts and the Clips tab): every update goes to both
+  const all = (sel, fn) => document.querySelectorAll(sel).forEach(fn);
+  const CLIP_ICON = svg('<rect x="3" y="6" width="13" height="12" rx="2.5"/><path d="m16 10.5 5-3v9l-5-3"/><circle cx="9.5" cy="12" r="2.2" fill="currentColor" stroke="none"/>');
+  let voice = null; // {state, lang, keys, nvidia}
+  let heard = null; // {conf, ok, at}
+  const LANG = { fr: 'français', en: 'anglais', de: 'allemand', es: 'espagnol' };
+  function render() {
+    const v = voice || {};
+    const keys = v.keys ? `Raccourci NVIDIA : ${v.keys}${v.nvidia ? '' : ' (celui de base, réglage NVIDIA introuvable)'}.` : '';
+    let msg;
+    if (!settings.voiceClip) msg = keys;
+    else if (v.state === 'on') msg = `En écoute (${LANG[(v.lang || '').slice(0, 2)] || v.lang || '…'}). ${keys}`;
+    else if (v.state === 'nomic') msg = 'Aucun micro trouvé : vérifie ton micro par défaut dans les paramètres son de Windows.';
+    else if (v.state === 'norecognizer') msg = 'La reconnaissance vocale de Windows n’est pas installée (Paramètres › Heure et langue › Voix).';
+    else if (v.state === 'error') msg = 'La reconnaissance vocale n’a pas pu démarrer.';
+    else msg = 'Démarrage de l’écoute…';
+    all('.vc-status', (e) => { e.textContent = msg; });
+    all('.cl-switch', (e) => { e.checked = !!settings.voiceClip; });
+    const heardText = heard
+      ? `Dernière fois entendu à ${new Date(heard.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} : sûr à ${Math.round(heard.conf * 100)} %${heard.ok ? ', clip envoyé.' : ', pas assez sûr (75 % minimum), pas de clip.'}`
+      : 'Dis « Lagon clip that » pour essayer.';
+    all('.vc-heard', (e) => { e.textContent = settings.voiceClip ? heardText : ''; });
+  }
+  window.lagon.onVoice((v) => { if (v) { voice = v; render(); } });
+  window.lagon.onVoiceHeard((h) => { if (h) { heard = { ...h, at: Date.now() }; render(); } });
+  // the keys were pressed: wait for NVIDIA's file before saying anything (clip:saved / clip:failed)
+  const OK_ICON = svg('<circle cx="12" cy="12" r="9"/><path d="m8 12.5 2.7 2.7L16.2 9.5"/>');
+  const fmtSize = (b) => (b >= 1e9 ? `${(b / 1e9).toFixed(1).replace('.', ',')} Go` : `${Math.max(1, Math.round(b / 1e6))} Mo`);
+  const fmtWhen = (ms) => {
+    const d = new Date(ms);
+    const hm = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return d.toDateString() === new Date().toDateString() ? `aujourd’hui à ${hm}` : `le ${d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })} à ${hm}`;
+  };
+  let last = null;
+  all('.vc-ic', (e) => { e.innerHTML = CLIP_ICON; }); // the app's own icon
+  function renderLast() {
+    all('.vc-last', (e) => { e.hidden = !last; });
+    if (!last) return;
+    all('.vc-game', (e) => { e.textContent = e.closest('.page.clips') ? (last.game || 'NVIDIA') : `Dernier clip : ${last.game || 'NVIDIA'}`; });
+    all('.vc-meta', (e) => { e.textContent = `${fmtWhen(last.at)} · ${fmtSize(last.size)}`; });
+  }
+  function loadLast() { Promise.resolve(window.lagon.clipLast && window.lagon.clipLast()).then((c) => { last = c || null; renderLast(); }); }
+  // the result also written in the settings: pop-ups only show on the closed bar (a test made from
+  // the settings, card open, showed nothing at all)
+  const at = () => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  function result(text, tone) { all('.vc-result', (e) => { e.textContent = text; e.className = 'f-hint vc-result' + (tone ? ' ' + tone : ''); }); }
+  window.lagon.onClip((c) => { if (c) result(`${at()} : ${c.keys} envoyé à NVIDIA, j’attends le fichier du clip…`); });
+  window.lagon.onClipSaved((c) => {
+    if (!c) return;
+    last = c;
+    renderLast();
+    result(`${at()} : clip enregistré par NVIDIA (${fmtSize(c.size)}).`, 'ok');
+    showHud({ kind: 'clip', icon: OK_ICON, tone: 'ok', title: 'Clip enregistré', sub: `${c.game || 'NVIDIA'} · ${fmtSize(c.size)}` }, 2600);
+  });
+  window.lagon.onClipFailed((f) => {
+    result(`${at()} : NVIDIA n’a créé aucun clip. Sa relecture instantanée tourne-t-elle ? (sur le bureau, NVIDIA n’enregistre souvent rien : essaie en jeu)`, 'bad');
+    showHud({ kind: 'clip', icon: CLIP_ICON, title: 'Le clip n’a pas été enregistré',
+      sub: f && f.folder === false ? 'Dossier des clips NVIDIA introuvable' : 'Vérifie que la relecture instantanée de NVIDIA est activée' }, 5000);
+  });
+  all('.vc-play', (e) => e.addEventListener('click', () => window.lagon.clipOpen('play')));
+  all('.vc-folder', (e) => e.addEventListener('click', () => window.lagon.clipOpen('folder')));
+  // the tab's own switch (the settings' switches are bound by data-setting, only inside the settings)
+  all('.cl-switch', (e) => e.addEventListener('change', () => window.lagon.setSetting('voiceClip', e.checked).then(applySettings)));
+  // the newest clip again each time the settings open (clips made by hand count too)
+  $('.gear').addEventListener('click', () => setTimeout(() => { if (page === 'settings') loadLast(); }, 50));
+  loadLast();
+  // the Clips tab: the newest clip looked up again each time it is opened (clips made by hand count too)
+  let shown = false;
+  clipsUi = {
+    sync() {
+      const now = page === 'clips' && island.classList.contains('open');
+      if (now && !shown) loadLast();
+      shown = now;
+    },
+  };
+  window.lagon.onSettings(() => render());
+  all('.vc-test', (e) => e.addEventListener('click', () => window.lagon.clipTest()));
+  Promise.resolve(window.lagon.voiceState && window.lagon.voiceState()).then((v) => { if (v) voice = v; render(); });
 })();

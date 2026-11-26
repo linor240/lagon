@@ -19,7 +19,7 @@
     widgetTwitch: true, twitchTicker: true, twitchClientId: '', display: 'primary', openAtLogin: true,
     widgetValorant: true, valoRiotId: 'Lagon#EUW', valoRegion: 'eu', valoPlatform: 'pc',
     musicPriority: true, focusMode: false, focusHotkey: 'ctrl+alt+f',
-    discordMuteHotkey: 'ctrl+alt+m', discordDeafHotkey: 'ctrl+alt+d', reloadHotkey: 'ctrl+alt+r', noteHotkey: 'ctrl+alt+n', widgetNotes: true, notesReminders: true,
+    discordMuteHotkey: 'ctrl+alt+m', discordDeafHotkey: 'ctrl+alt+d', reloadHotkey: 'ctrl+alt+r', noteHotkey: 'ctrl+alt+n', widgetNotes: true, widgetClips: true, voiceClip: false, notesReminders: true,
     tabOrder: ['music', 'sound', 'pc', 'time', 'twitch', 'obs', 'valorant', 'discord'], welcomeDone: !q.has('welcome'),
   };
 
@@ -135,6 +135,8 @@
   window.lagon = new Proxy({
     notesGet: () => R(JSON.parse(JSON.stringify(notes))), notesSave: (n) => { notes = n; return R(true); },
     onQuickNote: on('notes:quick'),
+    clipLast: () => R({ game: 'Valorant', name: 'Valorant 2026.11.26 - 21.40.12.03.DVR.mp4', at: Date.now() - 50 * 60000, size: 209800000 }),
+    voiceState: () => R({ state: 'off', lang: 'fr-FR', keys: 'Alt + Z', nvidia: true }),
     onState: on('media:state'), onLyrics: on('media:lyrics'), onHover: on('island:hover'), onAudio: on('sys:audio'),
     onStats: on('sys:stats'), onHud: on('sys:hud'), onLook: on('face:look'), onAway: on('face:away'),
     onSettings: on('settings:changed'), onPaused: on('island:paused'), onTwitchStatus: on('twitch:status'),

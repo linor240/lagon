@@ -72,7 +72,7 @@
           <i class="live-dot"></i>
         </button>
         <button data-page="obs" title="OBS">
-          <svg viewBox="0 0 24 24"><rect x="2.5" y="6.5" width="13" height="11" rx="2.5"/><path d="m15.5 10.5 6-3.5v10l-6-3.5z"/></svg>
+          <svg class="filled" viewBox="0 0 24 24"><!-- OBS Studio logo (Simple Icons, CC0) --><path d="M12,24C5.383,24,0,18.617,0,12S5.383,0,12,0s12,5.383,12,12S18.617,24,12,24z M12,1.109 C5.995,1.109,1.11,5.995,1.11,12C1.11,18.005,5.995,22.89,12,22.89S22.89,18.005,22.89,12C22.89,5.995,18.005,1.109,12,1.109z M6.182,5.99c0.352-1.698,1.503-3.229,3.05-3.996c-0.269,0.273-0.595,0.483-0.844,0.78c-1.02,1.1-1.48,2.692-1.199,4.156 c0.355,2.235,2.455,4.06,4.732,4.028c1.765,0.079,3.485-0.937,4.348-2.468c1.848,0.063,3.645,1.017,4.7,2.548 c0.54,0.799,0.962,1.736,0.991,2.711c-0.342-1.295-1.202-2.446-2.375-3.095c-1.135-0.639-2.529-0.802-3.772-0.425 c-1.56,0.448-2.849,1.723-3.293,3.293c-0.377,1.25-0.216,2.628,0.377,3.772c-0.825,1.429-2.315,2.449-3.932,2.756 c-1.244,0.261-2.551,0.059-3.709-0.464c1.036,0.302,2.161,0.355,3.191-0.011c1.381-0.457,2.522-1.567,3.024-2.935 c0.556-1.49,0.345-3.261-0.591-4.54c-0.7-1.007-1.803-1.717-3.002-1.969c-0.38-0.068-0.764-0.098-1.148-0.134 c-0.611-1.231-0.834-2.66-0.528-3.996L6.182,5.99z"/></svg>
           <i class="live-dot"></i>
         </button>
         <button data-page="valorant" title="Valorant">
@@ -83,6 +83,9 @@
         </button>
         <button data-page="game" title="Jeu">
           <svg viewBox="0 0 24 24"><path d="M7.5 7h9a4.5 4.5 0 0 1 4.4 5.5l-1 4.3a2.3 2.3 0 0 1-4 1L14.4 16H9.6l-1.5 1.8a2.3 2.3 0 0 1-4-1l-1-4.3A4.5 4.5 0 0 1 7.5 7z"/><path d="M7.5 10.5v3M6 12h3"/><circle cx="16" cy="11" r=".6"/><circle cx="17.5" cy="13" r=".6"/></svg>
+        </button>
+        <button data-page="clips" title="Clips">
+          <svg viewBox="0 0 24 24"><rect x="3" y="6" width="13" height="12" rx="2.5"/><path d="m16 10.5 5-3v9l-5-3"/><circle cx="9.5" cy="12" r="2.2" fill="currentColor" stroke="none"/></svg>
         </button>
       </nav>
 
@@ -276,6 +279,26 @@
           <div class="gm-modes" role="group" aria-label="Choix du jeu"><button data-v="jump">Saut</button><button data-v="wheel">Roue</button></div>
         </section>
 
+        <!-- clips: the newest NVIDIA clip + the voice clip ("Lagon clip that") options -->
+        <section class="page clips">
+          <div class="cl-left">
+            <span class="t-k">Dernier clip</span>
+            <div class="vc-last cl-card" hidden>
+              <span class="vc-ic"></span>
+              <div class="vc-info"><b class="vc-game"></b><span class="vc-meta"></span></div>
+            </div>
+            <span class="cl-none f-hint">Aucun clip NVIDIA trouvé pour l’instant.</span>
+            <div class="cl-btns"><button class="vl-btn vc-play">Regarder</button><button class="vl-btn vc-folder">Dossier</button></div>
+          </div>
+          <div class="cl-right">
+            <label class="sw-row cl-row"><span>Clip à la voix : « Lagon clip that »</span><input type="checkbox" class="cl-switch" /><i class="sw"></i></label>
+            <span class="f-hint vc-status"></span>
+            <span class="f-hint vc-heard"></span>
+            <span class="f-hint vc-result"></span>
+            <div><button class="vl-btn vc-test">Tester le clip</button></div>
+          </div>
+        </section>
+
         <section class="page settings">
           <nav class="s-nav" aria-label="Catégories">
             <button data-cat="general" class="on"><svg viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg><span>Général</span></button>
@@ -301,7 +324,7 @@
                   <div class="rk-info"><b class="rk-name"></b><span class="rk-since"></span><div class="rk-bar"><i class="rk-fill"></i></div><span class="rk-next"></span></div>
                 </div>
                 <div class="rk-ladder"></div>
-                <span class="f-hint">Plus tu gardes Lagon, plus ton casier grossit. Passe la souris sur un badge pour le voir bouger. Tu peux mettre ton badge à la place du petit visage : Apparence › Petit visage › Rang.</span>
+                <span class="f-hint">Plus tu gardes Lagon, plus ton étoile évolue. Passe la souris sur un badge pour le voir bouger. Tu peux mettre ton badge à la place du petit visage : Apparence › Petit visage › Rang.</span>
               </div>
               <div class="s-group">
                 <span class="s-k">Barre</span>
@@ -592,6 +615,24 @@
               <span class="f-hint">Clique sur un raccourci puis appuie sur la combinaison voulue : Ctrl, Alt ou Maj + une lettre, un chiffre ou F1–F12. Échap pour annuler, Retour arrière pour le désactiver. Ils marchent partout, même en jeu.</span>
               <span class="f-hint hk-err"></span>
               <div><button class="vl-btn hk-reset">Tout réinitialiser</button></div>
+              <!-- voice clip: "Lagon clip that" presses the NVIDIA save-replay shortcut (off by default) -->
+              <div class="s-group" data-needs="voiceClip">
+                <span class="s-k">Clip à la voix</span>
+                <label class="sw-row s-main"><span>Dire « Lagon clip that » pour clipper avec NVIDIA</span><input type="checkbox" data-setting="voiceClip" /><i class="sw"></i></label>
+                <span class="f-hint vc-status"></span>
+                <div class="s-body">
+                  <span class="f-hint vc-heard"></span>
+                  <span class="f-hint vc-result"></span>
+                  <div><button class="vl-btn vc-test">Tester le clip</button></div>
+                </div>
+                <!-- the newest clip in NVIDIA's folder (voice or by hand) -->
+                <div class="vc-last" hidden>
+                  <span class="vc-ic"></span>
+                  <div class="vc-info"><b class="vc-game"></b><span class="vc-meta"></span></div>
+                  <button class="vl-btn vc-play">Regarder</button><button class="vl-btn vc-folder">Dossier</button>
+                </div>
+                <span class="f-hint">Lagon n’écoute que cette phrase, sur ton PC : rien ne part sur Internet. Il appuie alors à ta place sur ton raccourci NVIDIA « Enregistrer la relecture », comme un Stream Deck. La relecture instantanée de NVIDIA doit être activée. Cette touche simulée passe par le jeu en cours : le risque avec Vanguard est très faible, mais pas nul.</span>
+              </div>
             </div>
           </div>
         </section>
