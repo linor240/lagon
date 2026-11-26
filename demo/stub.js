@@ -19,7 +19,7 @@
     widgetTwitch: true, twitchTicker: true, twitchClientId: '', display: 'primary', openAtLogin: true,
     widgetValorant: true, valoRiotId: 'Lagon#EUW', valoRegion: 'eu', valoPlatform: 'pc',
     musicPriority: true, focusMode: false, focusHotkey: 'ctrl+alt+f',
-    discordMuteHotkey: 'ctrl+alt+m', discordDeafHotkey: 'ctrl+alt+d', reloadHotkey: 'ctrl+alt+r',
+    discordMuteHotkey: 'ctrl+alt+m', discordDeafHotkey: 'ctrl+alt+d', reloadHotkey: 'ctrl+alt+r', noteHotkey: 'ctrl+alt+n', widgetNotes: true, notesReminders: true,
     tabOrder: ['music', 'sound', 'pc', 'time', 'twitch', 'obs', 'valorant', 'discord'], welcomeDone: !q.has('welcome'),
   };
 
@@ -124,7 +124,17 @@
     lastMatch: { matchId: 'demo', map: 'Ascent', agent: 'Jett', agentIcon: '../img/agent-jett.png', won: true, draw: false,
       roundsWon: 13, roundsLost: 9, kills: 21, deaths: 14, assists: 5, score: 5390, acs: 245, hs: 27 } };
 
+  // notes tab: a few made-up notes around today
+  const dayOff = (n) => { const d = new Date(); d.setDate(d.getDate() + n); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+  let notes = [
+    { id: 'd1', text: 'Scrim avec la team', date: dayOff(1), time: '20:30', done: false, rem: false, at: Date.now() - 4e6 },
+    { id: 'd2', text: 'Revoir le retake B sur Ascent', date: null, time: null, done: false, rem: false, at: Date.now() - 2e6 },
+    { id: 'd3', text: 'Tournoi communautaire', date: dayOff(9), time: '18:00', done: false, rem: false, at: Date.now() - 9e6 },
+    { id: 'd4', text: 'Changer la sensi à 0.32', date: null, time: null, done: true, rem: false, at: Date.now() - 8e6 },
+  ];
   window.lagon = new Proxy({
+    notesGet: () => R(JSON.parse(JSON.stringify(notes))), notesSave: (n) => { notes = n; return R(true); },
+    onQuickNote: on('notes:quick'),
     onState: on('media:state'), onLyrics: on('media:lyrics'), onHover: on('island:hover'), onAudio: on('sys:audio'),
     onStats: on('sys:stats'), onHud: on('sys:hud'), onLook: on('face:look'), onAway: on('face:away'),
     onSettings: on('settings:changed'), onPaused: on('island:paused'), onTwitchStatus: on('twitch:status'),

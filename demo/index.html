@@ -59,6 +59,9 @@
         <button data-page="time" title="Temps d’écran">
           <svg viewBox="0 0 24 24"><path d="M7 3h10M7 21h10M8 3v2.5a4 4 0 0 0 1.6 3.2L12 12l-2.4 3.3A4 4 0 0 0 8 18.5V21M16 3v2.5a4 4 0 0 1-1.6 3.2L12 12l2.4 3.3a4 4 0 0 1 1.6 3.2V21"/></svg>
         </button>
+        <button data-page="notes" title="Notes">
+          <svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2.5"/><path d="M8.5 3v4M15.5 3v4M4 10h16M8 14h4.5M8 17h7"/></svg>
+        </button>
         <button data-page="twitch" title="Twitch">
           <svg class="filled" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M6 0 1.71 4.29v15.42h5.15V24l4.28-4.29h3.43L22.29 12V0zm14.57 11.14-3.43 3.43h-3.43l-3 3v-3H6.86V1.71h13.71zM11.57 4.71h1.72v5.15h-1.72zm4.72 0H18v5.15h-1.71z"/></svg>
           <i class="live-dot"></i>
@@ -155,6 +158,24 @@
             <div class="week"></div>
           </div>
           <div class="t-apps"></div>
+        </section>
+
+        <!-- notes + calendar (quick note: shortcut, even in game) -->
+        <section class="page notes">
+          <div class="nt-cal">
+            <div class="nt-head">
+              <button class="nt-prev" title="Mois précédent" aria-label="Mois précédent"><svg viewBox="0 0 24 24"><path d="m14.5 6-6 6 6 6"/></svg></button>
+              <button class="nt-month" title="Revenir à aujourd’hui"></button>
+              <button class="nt-next" title="Mois suivant" aria-label="Mois suivant"><svg viewBox="0 0 24 24"><path d="m9.5 6 6 6-6 6"/></svg></button>
+            </div>
+            <div class="nt-grid"><i>L</i><i>M</i><i>M</i><i>J</i><i>V</i><i>S</i><i>D</i></div>
+          </div>
+          <div class="nt-main">
+            <div class="nt-top"><span class="nt-k">Notes</span><button class="nt-all">Tout voir</button></div>
+            <input class="text-in nt-in" type="text" maxlength="300" spellcheck="false" autocomplete="off" placeholder="Écris une note… ex. « scrim demain 20h »" />
+            <span class="nt-when"></span>
+            <div class="nt-list"></div>
+          </div>
         </section>
 
         <!-- twitch -->
@@ -367,6 +388,15 @@
               <h2 class="s-title">Modules</h2>
               <span class="f-hint">Allume ceux que tu veux voir. Attrape une ligne par ses petits points et fais-la glisser pour changer l’ordre des onglets. Un module éteint n’a pas d’onglet et rien ne tourne en arrière-plan.</span>
               <div class="mod-list"></div>
+              <div class="s-group" data-needs="widgetNotes">
+                <span class="s-k">Notes</span>
+                <span class="s-off-note">Module éteint : allume-le dans la liste au-dessus.</span>
+                <div class="s-body">
+                  <label class="sw-row"><span>Rappels en pop-up</span><input type="checkbox" data-setting="notesReminders" /><i class="sw"></i></label>
+                  <span class="f-hint">Le jour prévu (et à l’heure, s’il y en a une), la barre fermée te le rappelle. Pendant un jeu en plein écran, le rappel attend que tu en sortes.</span>
+                  <span class="f-hint">En jeu, appuie sur le raccourci « Note rapide » (Ctrl + Alt + N au départ) : écris, Entrée, et tu reviens dans ton jeu. « demain 20h », « vendredi », « le 12 » ou « 12/12 » dans le texte mettent la note dans le calendrier.</span>
+                </div>
+              </div>
               <div class="s-group" data-needs="widgetMusic">
                 <span class="s-k">Musique</span>
                 <span class="s-off-note">Module éteint : allume-le dans la liste au-dessus.</span>
@@ -539,6 +569,7 @@
                 <div class="hk-row" data-hk="discordMuteHotkey"><span>Discord : couper / réactiver le micro</span><button class="hk-btn"></button></div>
                 <div class="hk-row" data-hk="discordDeafHotkey"><span>Discord : sourdine</span><button class="hk-btn"></button></div>
                 <div class="hk-row" data-hk="reloadHotkey"><span>Recharger Lagon</span><button class="hk-btn"></button></div>
+                <div class="hk-row" data-hk="noteHotkey"><span>Note rapide (même en jeu)</span><button class="hk-btn"></button></div>
               </div>
               <span class="f-hint">Clique sur un raccourci puis appuie sur la combinaison voulue : Ctrl, Alt ou Maj + une lettre, un chiffre ou F1–F12. Échap pour annuler, Retour arrière pour le désactiver. Ils marchent partout, même en jeu.</span>
               <span class="f-hint hk-err"></span>

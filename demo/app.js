@@ -27,6 +27,8 @@ let wheel = null; // the other mini-game, la Roue ({ sync })
 let fpsNow = null; // last FPS reading from the helper ({state, fps, app})
 let fpsAccess = null; // may this Windows account read the FPS (null: not asked yet)
 let fpsGrant = null; // answer to "Autoriser les FPS": asking, ok, already, cancelled, error
+let notesUi = null; // the notes tab ({ sync, quickEnd }), set up at the end of the file
+let quickOn = false; // a quick note (shortcut) is being typed
 // replaced by the saved settings as soon as the main process answers
 let settings = {
   openMode: 'hover', position: 'center', peekOnTrack: true, compactLyrics: true, volumeOsd: true, idleFace: true, faceSleepSeconds: 120,
@@ -43,12 +45,17 @@ function setOpen(open) {
   window.lagon.setOpenState(open); // the main process hit-tests the open or the compact shape
   if (open) hideOsd();
   if (!open) {
+    if (quickOn && notesUi) notesUi.quickEnd(false); // closed some other way: no focus juggling
     window.lagon.keyboard(false);
     // settings are a detour: next time the island opens on the last real page
     if (page === 'settings') setTimeout(() => { if (!island.classList.contains('open')) setPage(userPage, true); }, 450);
   }
   syncStats();
 }
+
+// The island and the card clip their content (overflow: hidden), but the browser can still scroll
+// them (focusing a field, a key, a wheel): that offset would stay and shift the whole bar. Never.
+[island, $('.full')].forEach((e) => e.addEventListener('scroll', () => { if (e.scrollLeft || e.scrollTop) { e.scrollLeft = 0; e.scrollTop = 0; } }));
 
 // The main process watches the cursor and tells us when it enters / leaves.
 // "Au survol": entering opens. "Au clic": entering only makes it clickable (and grow a bit).
@@ -91,7 +98,7 @@ function sendSizes(idle) {
 
 // Briefly show the music card when a new song starts.
 function peek() {
-  if (hovering || !settings.peekOnTrack || settings.focusMode || welcomeOn) return;
+  if (hovering || !settings.peekOnTrack || settings.focusMode || welcomeOn || quickOn) return;
   setPage('music', true, false);
   setOpen(true);
   clearTimeout(peekTimer);
@@ -103,7 +110,7 @@ function peek() {
 
 // ---------- pages ----------
 // in the tabs' order (applyTabOrder rearranges it in place); settings always last
-const PAGES = ['music', 'sound', 'pc', 'time', 'twitch', 'obs', 'valorant', 'discord', 'game', 'settings'];
+const PAGES = ['music', 'sound', 'pc', 'time', 'notes', 'twitch', 'obs', 'valorant', 'discord', 'game', 'settings'];
 let page = 'music';
 let userPage = 'music'; // the page the user picked last; peeks and settings don't change it
 const pagesEl = $('.pages');
@@ -168,6 +175,7 @@ let usageTimer = null; // refreshes the screen time page while it is shown
 function syncStats() {
   syncUsage();
   if (game) game.sync();
+  if (notesUi) notesUi.sync();
   const fpsPinned = !!(settings.fpsCounter && settings.barFps) && !settings.focusMode && !paused;
   const fpsWant = !!settings.fpsCounter && !paused && ((island.classList.contains('open') && page === 'pc') || fpsPinned);
   if (fpsWant !== fpsOn) {
@@ -902,6 +910,7 @@ const MODULES = [
   ['sound', 'widgetSound', 'Son', 'Volume de chaque appli'],
   ['pc', 'widgetPc', 'PC', 'CPU, GPU, RAM et ping'],
   ['time', 'widgetTime', 'Temps d’écran', 'Le temps passé sur chaque appli'],
+  ['notes', 'widgetNotes', 'Notes', 'Notes rapides, même en jeu, et calendrier'],
   ['twitch', 'widgetTwitch', 'Twitch', 'Followers, subs, spectateurs'],
   ['obs', 'widgetObs', 'OBS', 'Live, débit et micro'],
   ['valorant', 'widgetValorant', 'Valorant', 'Rang, RR et dernier match'],
@@ -1240,7 +1249,7 @@ function syncFace() {
 let faceSyncTimer = setInterval(syncFace, 250);
 
 // ---------- widgets on / off ----------
-const WIDGET_OF_PAGE = { music: 'widgetMusic', sound: 'widgetSound', pc: 'widgetPc', time: 'widgetTime', twitch: 'widgetTwitch', valorant: 'widgetValorant', discord: 'widgetDiscord', obs: 'widgetObs', game: 'widgetGame' };
+const WIDGET_OF_PAGE = { music: 'widgetMusic', sound: 'widgetSound', pc: 'widgetPc', time: 'widgetTime', twitch: 'widgetTwitch', valorant: 'widgetValorant', discord: 'widgetDiscord', obs: 'widgetObs', game: 'widgetGame', notes: 'widgetNotes' };
 const pageEnabled = (name) => !WIDGET_OF_PAGE[name] || !!settings[WIDGET_OF_PAGE[name]];
 
 function applyWidgets() {
@@ -1972,8 +1981,8 @@ if (window.lagon.onFps) window.lagon.onFps((m) => {
 
 // ---------- shortcuts (Settings > Shortcuts) ----------
 // Click one, then press the keys: Ctrl / Alt / Shift + a letter, a digit or F1–F12.
-const HK_DEFAULTS = { focusHotkey: 'ctrl+alt+f', discordMuteHotkey: 'ctrl+alt+m', discordDeafHotkey: 'ctrl+alt+d', reloadHotkey: 'ctrl+alt+r' };
-const HK_NAMES = { focusHotkey: 'Mode focus', discordMuteHotkey: 'Micro Discord', discordDeafHotkey: 'Sourdine Discord', reloadHotkey: 'Recharger Lagon' };
+const HK_DEFAULTS = { focusHotkey: 'ctrl+alt+f', discordMuteHotkey: 'ctrl+alt+m', discordDeafHotkey: 'ctrl+alt+d', reloadHotkey: 'ctrl+alt+r', noteHotkey: 'ctrl+alt+n' };
+const HK_NAMES = { focusHotkey: 'Mode focus', discordMuteHotkey: 'Micro Discord', discordDeafHotkey: 'Sourdine Discord', reloadHotkey: 'Recharger Lagon', noteHotkey: 'Note rapide' };
 let hkState = {};
 let hkEditing = null;
 const hkLabel = (s) => (!s || s === 'off' ? 'Aucun' : s.split('+').map((p) => ({ ctrl: 'Ctrl', alt: 'Alt', shift: 'Maj' })[p] || p.toUpperCase()).join(' + '));
@@ -2416,4 +2425,400 @@ Promise.resolve(window.lagon.hotkeysState && window.lagon.hotkeysState()).then((
       render();
     },
   };
+})();
+
+// ---------- notes + calendar ----------
+// The list lives in %APPDATA%\Lagon\notes.json (Rust checks and writes it, see notes.rs); the page
+// owns it. A note: { id, text, date: "YYYY-MM-DD" | null, time: "HH:MM" | null, done, rem, at }.
+// The date and time are read from the text ("demain 20h", "vendredi", "le 12", "12/12"), else the
+// day picked in the calendar. Quick note (shortcut, even in game): the app shows the island and
+// gives it the keyboard, the card opens here with the field ready; Entrée saves and the game gets
+// its focus back, Échap closes. Reminders: one pop-up on the day (at the time if there is one),
+// one timer to the next one (nothing polls), held while hidden over a fullscreen game.
+(() => {
+  const sec = $('.page.notes');
+  const input = $('.nt-in');
+  const whenEl = $('.nt-when');
+  const listEl = $('.nt-list');
+  const titleEl = $('.nt-k');
+  const monthEl = $('.nt-month');
+  const grid = $('.nt-grid');
+  const MONTHS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+  const MONTHS_SHORT = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+  const DAYS = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
+  const CHECK = '<svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>';
+  const CROSS = '<svg viewBox="0 0 24 24"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg>';
+  const ICON = svg('<rect x="4" y="5" width="16" height="15" rx="2.5"/><path d="M8.5 3v4M15.5 3v4M4 10h16M8 14h4.5M8 17h7"/>');
+  const MAX = 500;
+
+  let notes = [];
+  let loaded = false;
+  let sel = null; // selected day "YYYY-MM-DD" (null: every note)
+  let month = null; // first day of the month on screen
+  let drawnFor = ''; // the day the tab was last drawn for (redrawn after midnight)
+  let remTimer = null;
+  let quickWhen = ''; // what the quick note was understood as, for the pop-up after Entrée
+
+  const pad = (n) => String(n).padStart(2, '0');
+  const ymd = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const fromYmd = (s) => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
+  const dayStart = (d = new Date()) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const addDays = (d, n) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
+  // that day if it exists (the 31st of a 30-day month: null); months past 11 roll into the next year
+  const realDate = (y, m, d) => {
+    const b = new Date(y, m, 1);
+    const x = new Date(b.getFullYear(), b.getMonth(), d);
+    return x.getMonth() === b.getMonth() && x.getFullYear() >= 2000 && x.getFullYear() <= 2100 ? x : null; // notes.rs keeps 2000-2100
+  };
+  const hourLabel = (t) => { const [h, m] = t.split(':'); return `${Number(h)}h${m === '00' ? '' : m}`; };
+
+  // ---- "demain 20h" -> { date, time } ----
+  const MONTH_RE = '(janvier|janv|fevrier|fevr|fev|mars|avril|avr|mai|juin|juillet|juil|aout|septembre|sept|octobre|oct|novembre|nov|decembre|dec)';
+  const MONTH_OF = { janv: 0, fev: 1, fevr: 1, mars: 2, avr: 3, mai: 4, juin: 5, juil: 6, aout: 7, sept: 8, oct: 9, nov: 10, dec: 11 };
+  const monthIndex = (w) => MONTH_OF[w] ?? MONTH_OF[w.slice(0, 4)] ?? MONTH_OF[w.slice(0, 3)];
+  function parseWhen(raw, now = new Date()) {
+    const t = ' ' + raw.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[’`]/g, "'") + ' ';
+    const today = dayStart(now);
+    let date = null;
+    let time = null;
+    // time: "20h", "20h30", "20:30", "à 1h" (a small hour alone is more likely a duration: "1h de ranked")
+    for (const m of t.matchAll(/[\s(](a\s+)?([01]?\d|2[0-3])(?:h([0-5]\d)?|:([0-5]\d))(?=[\s,.!?;)-])/g)) {
+      const h = Number(m[2]);
+      if (h < 6 && !m[1]) continue;
+      if (/(dans|pendant|en|depuis)\s*$/.test(t.slice(0, m.index + 1))) continue; // "dans 10h": a duration
+      time = `${pad(h)}:${m[3] || m[4] || '00'}`;
+      break;
+    }
+    let m;
+    if (/\sapres[- ]demain[\s,.!?;]/.test(t)) date = addDays(today, 2);
+    else if (/\sdemain[\s,.!?;]/.test(t)) date = addDays(today, 1);
+    else if (/\s(aujourd'hui|auj|ce soir|ce matin|ce midi|cet apres[- ]midi|cet aprem|tout a l'heure|tantot)[\s,.!?;]/.test(t)) date = today;
+    else if ((m = /\s(\d{1,2})\/(\d{1,2})(?:\/(\d{2}|\d{4}))?(?=[\s,.!?;)])/.exec(t))) {
+      const y = m[3] ? (m[3].length === 2 ? 2000 + Number(m[3]) : Number(m[3])) : today.getFullYear();
+      date = realDate(y, Number(m[2]) - 1, Number(m[1]));
+      if (date && !m[3] && date < today) date = realDate(y + 1, Number(m[2]) - 1, Number(m[1]));
+    } else if ((m = new RegExp(`\\s(\\d{1,2})(?:er)?\\s+${MONTH_RE}\\.?(?:\\s+(\\d{4}))?(?=[\\s,.!?;)])`).exec(t))) {
+      const mo = monthIndex(m[2]);
+      const y = m[3] ? Number(m[3]) : today.getFullYear();
+      date = realDate(y, mo, Number(m[1]));
+      if (date && !m[3] && date < today) date = realDate(y + 1, mo, Number(m[1]));
+    } else if ((m = /\s(?:le|du|au|pour le)\s+(\d{1,2})(?:er)?(?=[\s,.!?;)])/.exec(t))) {
+      const d = Number(m[1]);
+      date = realDate(today.getFullYear(), today.getMonth(), d);
+      // already past this month: next month (or the one after, for a 31 in a 30-day month)
+      for (let k = 1; (!date || date < today) && k <= 3; k++) date = realDate(today.getFullYear(), today.getMonth() + k, d);
+    } else if ((m = /\s(dimanche|lundi|mardi|mercredi|jeudi|vendredi|samedi)(?=[\s,.!?;)])/.exec(t))) {
+      // the next one ("lundi" said on a Monday = in a week)
+      const want = DAYS.indexOf(m[1]);
+      date = addDays(today, ((want - today.getDay() + 7) % 7) || 7);
+    }
+    return { date: date ? ymd(date) : null, time };
+  }
+
+  // the date a note would get, from its text, the selected day, or "today / tomorrow" for a lone time
+  function noteWhen(text) {
+    const w = parseWhen(text);
+    let date = w.date || sel;
+    if (!date && w.time) {
+      const now = new Date();
+      const [h, mi] = w.time.split(':').map(Number);
+      date = ymd(h * 60 + mi > now.getHours() * 60 + now.getMinutes() ? now : addDays(now, 1));
+    }
+    return { date, time: date ? w.time : null };
+  }
+
+  function whenLabel(n, long = false) {
+    if (!n.date) return '';
+    const d = fromYmd(n.date);
+    const diff = Math.round((d - dayStart()) / 864e5);
+    let s;
+    if (diff === 0) s = 'aujourd’hui';
+    else if (diff === 1) s = 'demain';
+    else if (diff === 2) s = 'après-demain';
+    else if (diff === -1) s = 'hier';
+    else if (diff > 2 && diff < 7) s = long ? `${DAYS[d.getDay()]} ${d.getDate()} ${MONTHS[d.getMonth()]}` : DAYS[d.getDay()];
+    else s = `${d.getDate()} ${(long ? MONTHS : MONTHS_SHORT)[d.getMonth()]}${d.getFullYear() !== new Date().getFullYear() ? ' ' + d.getFullYear() : ''}`;
+    if (n.time) s += ` à ${hourLabel(n.time)}`;
+    return s;
+  }
+  const dueAt = (n) => {
+    if (!n.date) return null;
+    const d = fromYmd(n.date);
+    if (n.time) { const [h, m] = n.time.split(':').map(Number); d.setHours(h, m); }
+    return d.getTime();
+  };
+  const isLate = (n) => !n.done && n.date && n.date < ymd(new Date());
+
+  function save() {
+    Promise.resolve(window.lagon.notesSave && window.lagon.notesSave(notes)).then((ok) => {
+      if (ok === false) { whenEl.textContent = 'Impossible d’enregistrer les notes.'; whenEl.className = 'nt-when bad'; }
+    });
+  }
+
+  // ---- drawing ----
+  const days = [];
+  for (let i = 0; i < 42; i++) {
+    const b = document.createElement('button');
+    b.className = 'nt-day';
+    b.addEventListener('click', () => {
+      const d = b.dataset.d;
+      sel = sel === d ? null : d;
+      if (sel) { const x = fromYmd(sel); if (x.getMonth() !== month.getMonth()) month = new Date(x.getFullYear(), x.getMonth(), 1); }
+      draw();
+      preview();
+    });
+    grid.append(b);
+    days.push(b);
+  }
+
+  function drawCalendar() {
+    const today = ymd(new Date());
+    monthEl.textContent = `${MONTHS[month.getMonth()]} ${month.getFullYear()}`.replace(/^./, (c) => c.toUpperCase());
+    const counts = {};
+    notes.forEach((n) => {
+      if (!n.date) return;
+      const c = counts[n.date] || (counts[n.date] = { all: 0, open: 0 });
+      c.all++;
+      if (!n.done) c.open++;
+    });
+    const start = addDays(month, -((month.getDay() + 6) % 7)); // weeks start on Monday
+    days.forEach((b, i) => {
+      const d = addDays(start, i);
+      const key = ymd(d);
+      const c = counts[key];
+      b.dataset.d = key;
+      b.textContent = d.getDate();
+      b.className = 'nt-day' + (d.getMonth() !== month.getMonth() ? ' out' : '') + (key === today ? ' today' : '')
+        + (key === sel ? ' sel' : '') + (c ? ' has' : '') + (c && !c.open ? ' all-done' : '');
+      b.title = c ? `${c.all} note${c.all > 1 ? 's' : ''}` : '';
+    });
+  }
+
+  // every note: soon (late, this week) first, then the undated ones (newest first), then later
+  // dates, then the ticked ones
+  function sortKey(n) {
+    const due = dueAt(n);
+    if (n.done) return [3, -n.at];
+    if (due == null) return [1, -n.at];
+    return [due < dayStart().getTime() + 7 * 864e5 ? 0 : 2, due];
+  }
+  function drawList() {
+    const items = (sel ? notes.filter((n) => n.date === sel) : notes.slice())
+      .map((n) => [sortKey(n), n]).sort((a, b) => a[0][0] - b[0][0] || a[0][1] - b[0][1]).map((x) => x[1]);
+    sec.classList.toggle('day', !!sel);
+    if (sel) {
+      const d = fromYmd(sel);
+      titleEl.textContent = `${DAYS[d.getDay()]} ${d.getDate()} ${MONTHS[d.getMonth()]}`;
+    } else {
+      const open = notes.filter((n) => !n.done).length;
+      titleEl.textContent = open ? `Notes · ${open}` : 'Notes';
+    }
+    listEl.textContent = '';
+    if (!items.length) {
+      const e = document.createElement('div');
+      e.className = 'nt-empty';
+      const key = hkLabel(settings.noteHotkey || 'ctrl+alt+n');
+      e.textContent = sel ? 'Rien de prévu ce jour-là. Écris une note au-dessus pour l’y mettre.'
+        : settings.noteHotkey === 'off' ? 'Aucune note pour l’instant.' : `Aucune note pour l’instant. En jeu, ${key} ouvre une note rapide.`;
+      listEl.append(e);
+      return;
+    }
+    items.forEach((n) => {
+      const row = document.createElement('div');
+      row.className = 'nt-row' + (n.done ? ' done' : '') + (isLate(n) ? ' late' : '');
+      const ck = document.createElement('button');
+      ck.className = 'nt-ck';
+      ck.title = n.done ? 'Pas encore fait' : 'Fait';
+      ck.innerHTML = CHECK; // the app's own icon
+      ck.addEventListener('click', () => { n.done = !n.done; save(); draw(); });
+      const tx = document.createElement('span');
+      tx.className = 'nt-tx';
+      tx.textContent = n.text;
+      const wh = document.createElement('span');
+      wh.className = 'nt-wh';
+      // the day is already in the title when one is selected: only the time then
+      wh.textContent = sel ? (n.time ? hourLabel(n.time) : '') : whenLabel(n);
+      if (n.date) wh.title = whenLabel(n, true);
+      const x = document.createElement('button');
+      x.className = 'nt-x';
+      x.title = 'Supprimer';
+      x.innerHTML = CROSS;
+      x.addEventListener('click', () => { notes = notes.filter((o) => o !== n); save(); draw(); schedule(); });
+      row.append(ck, tx, wh, x);
+      listEl.append(row);
+    });
+  }
+
+  function draw() {
+    if (!month) { const t = new Date(); month = new Date(t.getFullYear(), t.getMonth(), 1); }
+    drawnFor = ymd(new Date());
+    drawCalendar();
+    drawList();
+  }
+
+  // under the field: what the note will be (date found in the text, or the selected day)
+  function preview() {
+    const text = input.value.trim();
+    whenEl.className = 'nt-when';
+    if (!text) {
+      whenEl.textContent = quickOn ? 'Entrée pour noter · Échap pour fermer'
+        : sel ? `Pour ${whenLabel({ date: sel }, true)}` : 'Entrée pour ajouter';
+      return;
+    }
+    const w = noteWhen(text);
+    whenEl.textContent = w.date ? `→ ${whenLabel(w, true)}` : '→ sans date';
+    if (w.date) whenEl.classList.add('set');
+  }
+
+  function add() {
+    const text = input.value.trim().slice(0, 300);
+    if (!text) return false;
+    if (notes.length >= MAX) {
+      whenEl.textContent = `${MAX} notes au maximum : supprime les anciennes.`;
+      whenEl.className = 'nt-when bad';
+      return false;
+    }
+    const w = noteWhen(text);
+    const n = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 8), text, date: w.date, time: w.time, done: false, rem: false, at: Date.now() };
+    n.rem = n.date != null && dueAt(n) <= Date.now(); // its moment has already come: no pop-up for it
+    notes.unshift(n);
+    quickWhen = whenLabel(n, true);
+    input.value = '';
+    save();
+    draw();
+    preview();
+    schedule();
+    return true;
+  }
+
+  // ---- typing ----
+  input.addEventListener('pointerdown', () => window.lagon.keyboard(true));
+  input.addEventListener('input', preview);
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const added = add();
+      if (quickOn) {
+        quickEnd(true);
+        setOpen(false);
+        if (added) showHud({ kind: 'note', icon: ICON, title: 'Note enregistrée', sub: quickWhen || undefined }, 1600);
+      }
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      if (quickOn) { input.value = ''; quickEnd(true); setOpen(false); } else input.blur();
+    }
+  });
+  input.addEventListener('blur', (e) => {
+    if (quickOn && e.relatedTarget && sec.contains(e.relatedTarget)) { setTimeout(() => { if (quickOn) input.focus({ preventScroll: true }); }, 0); return; } // a day, a tick… in the card
+    if (quickOn) quickEnd(false); // clicked somewhere else: leave the focus where it went
+    else window.lagon.keyboard(false);
+    preview();
+  });
+
+  // ---- quick note (shortcut) ----
+  function quickEnd(restore) {
+    if (!quickOn) return;
+    quickOn = false;
+    sec.classList.remove('quick');
+    window.lagon.noteQuickEnd(restore);
+    preview();
+  }
+  function quickStart() {
+    if (welcomeOn) { window.lagon.noteQuickEnd(true); return; }
+    quickOn = true;
+    sec.classList.add('quick');
+    sel = null;
+    clearTimeout(peekTimer);
+    peekTimer = null;
+    setPage('notes', true, false);
+    setOpen(true);
+    draw();
+    preview();
+    // the window has just been given the keyboard; the field takes it once the card is drawn
+    // preventScroll: the island is still growing, and focusing would scroll it to show the field
+    // (the whole bar then stayed shifted: no clock, no face, a bit of the next tab showing)
+    requestAnimationFrame(() => { input.focus({ preventScroll: true }); setTimeout(() => { if (quickOn) input.focus({ preventScroll: true }); }, 120); });
+  }
+  window.lagon.onQuickNote((on) => {
+    if (on) quickStart();
+    else { // pressed again: the app already gave the focus back (the field's blur may have ended it first)
+      quickOn = false;
+      sec.classList.remove('quick');
+      if (!hovering) setOpen(false);
+    }
+  });
+
+  // ---- buttons ----
+  $('.nt-prev').addEventListener('click', () => { month = new Date(month.getFullYear(), month.getMonth() - 1, 1); drawCalendar(); });
+  $('.nt-next').addEventListener('click', () => { month = new Date(month.getFullYear(), month.getMonth() + 1, 1); drawCalendar(); });
+  monthEl.addEventListener('click', () => { const t = new Date(); month = new Date(t.getFullYear(), t.getMonth(), 1); sel = null; draw(); preview(); });
+  $('.nt-all').addEventListener('click', () => { sel = null; draw(); preview(); });
+
+  // ---- reminders ----
+  function remind() {
+    clearTimeout(remTimer);
+    remTimer = null;
+    if (!loaded || !settings.widgetNotes || !settings.notesReminders) return;
+    const now = Date.now();
+    const old = dayStart().getTime() - 864e5; // missed for longer than since yesterday: no pop-up any more
+    let changed = false;
+    const due = [];
+    notes.forEach((n) => {
+      if (n.done || n.rem || !n.date) return;
+      const at = dueAt(n);
+      if (at > now) return;
+      if (at < old) { n.rem = true; changed = true; } else due.push(n);
+    });
+    if (due.length) {
+      // held while hidden (fullscreen game: onPaused brings it back), open or in focus mode
+      if (paused) { if (changed) save(); return; }
+      if (island.classList.contains('open') || settings.focusMode) {
+        if (changed) save();
+        remTimer = setTimeout(remind, settings.focusMode ? 60000 : 4000);
+        return;
+      }
+      due.sort((a, b) => dueAt(a) - dueAt(b));
+      const first = due[0];
+      const sub = due.length === 1 ? whenLabel(first, true).replace(/^./, (c) => c.toUpperCase())
+        : due.slice(0, 3).map((n) => n.text).join(' · ') + (due.length > 3 ? ` · et ${due.length - 3} autre${due.length > 4 ? 's' : ''}` : '');
+      showHud({ kind: 'note', icon: ICON, title: due.length === 1 ? first.text : `${due.length} rappels`, sub }, 6000);
+      due.forEach((n) => { n.rem = true; });
+      changed = true;
+      if (page === 'notes') draw();
+    }
+    if (changed) save();
+    schedule();
+  }
+  // one timer to the next reminder (at most 6 h ahead: the clock may change meanwhile)
+  function schedule() {
+    clearTimeout(remTimer);
+    remTimer = null;
+    if (!loaded || !settings.widgetNotes || !settings.notesReminders || paused) return;
+    const now = Date.now();
+    let next = Infinity;
+    notes.forEach((n) => { if (!n.done && !n.rem && n.date) next = Math.min(next, dueAt(n)); });
+    if (next === Infinity) return;
+    remTimer = setTimeout(remind, Math.max(1000, Math.min(next - now, 6 * 3600e3)));
+  }
+  window.lagon.onPaused((on) => { if (!on) setTimeout(remind, 1500); else { clearTimeout(remTimer); remTimer = null; } });
+
+  let remKey = '';
+  notesUi = {
+    quickEnd,
+    // called by syncStats (page changes, open / close, settings): redraw after midnight, reminders
+    // on / off
+    sync() {
+      if (page === 'notes' && island.classList.contains('open') && drawnFor !== ymd(new Date())) draw();
+      const key = `${!!settings.widgetNotes}${!!settings.notesReminders}`;
+      if (key !== remKey) { remKey = key; remind(); }
+    },
+  };
+
+  Promise.resolve(window.lagon.notesGet && window.lagon.notesGet()).then((list) => {
+    notes = Array.isArray(list) ? list : [];
+    loaded = true;
+    draw();
+    preview();
+    remind();
+  });
 })();
