@@ -3276,7 +3276,7 @@ Promise.resolve(window.lagon.hotkeysState && window.lagon.hotkeysState()).then((
   };
 })();
 
-// ---------- voice clip ("Lagon clip that") ----------
+// ---------- voice clip ("Lagoune clip moi ça") ----------
 // The helper listens offline (Windows' speech recognizer); the app presses NVIDIA's own "save instant
 // replay" shortcut, read from NVIDIA's settings. Here: the status in Settings > Shortcuts, the last
 // time the phrase was heard (to see how sure the recognizer was), and a pop-up when a clip is asked.
@@ -3301,7 +3301,7 @@ Promise.resolve(window.lagon.hotkeysState && window.lagon.hotkeysState()).then((
     all('.cl-switch', (e) => { e.checked = !!settings.voiceClip; });
     const heardText = heard
       ? `Dernière fois entendu à ${new Date(heard.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} : sûr à ${Math.round(heard.conf * 100)} %${heard.ok ? ', clip envoyé.' : ', pas assez sûr (75 % minimum), pas de clip.'}`
-      : 'Dis « Lagon clip that » pour essayer.';
+      : 'Dis « Lagoune clip moi ça » pour essayer.';
     all('.vc-heard', (e) => { e.textContent = settings.voiceClip ? heardText : ''; });
   }
   window.lagon.onVoice((v) => { if (v) { voice = v; render(); } });
