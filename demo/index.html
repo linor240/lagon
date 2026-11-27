@@ -38,6 +38,11 @@
         <div class="o-bar"><div class="o-fill"></div></div>
         <span class="o-pct"></span>
       </div>
+      <!-- voice assistant (« Lagoune t'es là ? »): the little face listens in the middle, with a "?" -->
+      <div class="c-listen" aria-hidden="true">
+        <span class="mini-face l-face" data-look="classic"><span class="face-in"><i class="eye l"></i><i class="eye r"></i><i class="cheek l"></i><i class="cheek r"></i><i class="ear l"></i><i class="ear r"></i><i class="ant"></i><i class="mouth"></i></span></span>
+        <span class="l-mark"></span>
+      </div>
     </div>
 
     <!-- stats chosen in Settings > Bar, always shown at the right end of the closed island -->
@@ -632,6 +637,17 @@
                   <button class="vl-btn vc-play">Regarder</button><button class="vl-btn vc-folder">Dossier</button>
                 </div>
                 <span class="f-hint">Lagon n’écoute que cette phrase, sur ton PC : rien ne part sur Internet. Il appuie alors à ta place sur ton raccourci NVIDIA « Enregistrer la relecture », comme un Stream Deck. La relecture instantanée de NVIDIA doit être activée. Cette touche simulée passe par le jeu en cours : le risque avec Vanguard est très faible, mais pas nul.</span>
+              </div>
+              <!-- voice assistant (0.19.0): « Lagoune t'es là ? » then a command -->
+              <div class="s-group" data-needs="voiceAssistant">
+                <span class="s-k">Assistant vocal</span>
+                <label class="sw-row s-main"><span>Dire « Lagoune t’es là ? » pour donner un ordre à Lagon</span><input type="checkbox" data-setting="voiceAssistant" /><i class="sw"></i></label>
+                <span class="f-hint va-status"></span>
+                <div class="s-body">
+                  <label class="sw-row"><span>Petit son quand Lagon t’écoute</span><input type="checkbox" data-setting="voiceChime" /><i class="sw"></i></label>
+                  <span class="f-hint">Après le son, tu as 6 secondes pour dire : « mets la musique », « coupe la musique », « musique suivante », « musique précédente », « monte le son », « baisse le son », « clip moi ça » (avec le clip à la voix activé) ou « laisse tomber ». Ou tout d’un coup : « Lagoune coupe la musique ».</span>
+                </div>
+                <span class="f-hint">Comme pour le clip, tout est écouté sur ton PC : rien ne part sur Internet.</span>
               </div>
             </div>
           </div>

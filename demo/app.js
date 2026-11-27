@@ -3298,6 +3298,29 @@ Promise.resolve(window.lagon.hotkeysState && window.lagon.hotkeysState()).then((
     else if (v.state === 'error') msg = 'La reconnaissance vocale n’a pas pu démarrer.';
     else msg = 'Démarrage de l’écoute…';
     all('.vc-status', (e) => { e.textContent = msg; });
+    // the voice assistant's own line (same listener, French phrases only)
+    let va = '';
+    if (!settings.voiceAssistant) va = '';
+    else if (v.state === 'on') va = (v.lang || '').startsWith('fr') ? 'En écoute.' : 'L’assistant ne comprend que le français : il faut la reconnaissance vocale de Windows en français.';
+    else if (v.state === 'nomic' || v.state === 'norecognizer' || v.state === 'error') va = msg;
+    else va = 'Démarrage de l’écoute…';
+    // what the recognizer heard last, and how sure it was (to see why a phrase did nothing)
+    const PHRASE = { wake: 'Lagoune t’es là', clip: 'clip moi ça', play: 'mets la musique', pause: 'coupe la musique', next: 'musique suivante',
+      prev: 'musique précédente', up: 'monte le son', down: 'baisse le son', cancel: 'laisse tomber' };
+    const hm = (ms) => new Date(ms).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const l = v.last;
+    if (settings.voiceAssistant && l && PHRASE[l.cmd]) {
+      const said = (l.direct && l.cmd !== 'wake' ? 'Lagoune ' : '') + PHRASE[l.cmd];
+      const WHY = { ok: 'compris.', low: `pas assez sûr (${Math.round(l.min * 100)} % minimum).`, closed: 'dit en dehors des 6 secondes d’écoute.',
+        off: l.cmd === 'clip' ? 'le clip à la voix est éteint.' : 'l’assistant est éteint.' };
+      va += ` Dernière phrase entendue à ${hm(l.at)} : « ${said} », sûr à ${Math.round(l.conf * 100)} % : ${WHY[l.why] || ''}`;
+    }
+    const r = v.restart;
+    if (settings.voiceAssistant && r) {
+      va += r.why === 'mic' ? ` Micro par défaut changé : écoute relancée à ${hm(r.at)}.`
+        : ` L’écoute s’était coupée : relancée à ${hm(r.at)}.`;
+    }
+    all('.va-status', (e) => { e.textContent = va; });
     all('.cl-switch', (e) => { e.checked = !!settings.voiceClip; });
     const heardText = heard
       ? `Dernière fois entendu à ${new Date(heard.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} : sûr à ${Math.round(heard.conf * 100)} %${heard.ok ? ', clip envoyé.' : ', pas assez sûr (75 % minimum), pas de clip.'}`
@@ -3359,4 +3382,65 @@ Promise.resolve(window.lagon.hotkeysState && window.lagon.hotkeysState()).then((
   window.lagon.onSettings(() => render());
   all('.vc-test', (e) => e.addEventListener('click', () => window.lagon.clipTest()));
   Promise.resolve(window.lagon.voiceState && window.lagon.voiceState()).then((v) => { if (v) voice = v; render(); });
+})();
+
+// ---------- voice assistant (« Lagoune t'es là ? ») ----------
+// The app opens a 6 s listening window (the little sounds come from the helper): the face goes to the
+// middle of the closed bar with a "?", then shows what was done (play, pause, next…) for a second, or
+// blinks and leaves when nothing was said. "Lagoune <command>" said in one go shows the result too.
+(() => {
+  const box = $('.c-listen');
+  const lFace = $('.l-face');
+  const mark = $('.l-mark');
+  // the app's own icons (innerHTML only for these constants)
+  const DONE = {
+    clip: svg('<rect x="3" y="6" width="13" height="12" rx="2.5"/><path d="m16 10.5 5-3v9l-5-3"/>'),
+    play: svg('<path d="M8 5.5v13l10.5-6.5z" fill="currentColor"/>'),
+    pause: svg('<path d="M8 5v14M16 5v14"/>'),
+    next: svg('<path d="M6 6l8 6-8 6z" fill="currentColor"/><path d="M18 6v12"/>'),
+    prev: svg('<path d="M18 6l-8 6 8 6z" fill="currentColor"/><path d="M6 6v12"/>'),
+    up: svg('<path d="M4 9.5h3.5L12 6v12l-4.5-3.5H4z"/><path d="M17 9v6M14 12h6"/>'),
+    down: svg('<path d="M4 9.5h3.5L12 6v12l-4.5-3.5H4z"/><path d="M14 12h6"/>'),
+  };
+  let leaveTimer = null;
+  function leave(ms) {
+    clearTimeout(leaveTimer);
+    leaveTimer = setTimeout(() => {
+      island.classList.remove('listening');
+      box.classList.remove('in', 'done', 'no');
+      lFace.classList.remove('happy', 'blink');
+    }, ms);
+  }
+  window.lagon.onListen((l) => {
+    if (!l) return;
+    clearTimeout(leaveTimer);
+    lFace.dataset.look = settings.faceStyle || 'classic';
+    if (l.on) {
+      lFace.classList.remove('happy', 'blink');
+      box.classList.remove('done', 'no', 'in');
+      void box.offsetWidth; // said again: the hop starts again
+      box.classList.add('in');
+      mark.textContent = '?';
+      island.classList.add('listening');
+      return;
+    }
+    if (!l.cmd) { // nothing said in time: a blink, then back to the bar
+      if (!island.classList.contains('listening')) return;
+      lFace.classList.add('blink');
+      setTimeout(() => lFace.classList.remove('blink'), 160);
+      leave(450);
+      return;
+    }
+    box.classList.remove('in');
+    box.classList.add('done');
+    box.classList.toggle('no', !l.ok);
+    if (l.ok && DONE[l.cmd]) mark.innerHTML = DONE[l.cmd];
+    else mark.textContent = l.ok ? '' : '!';
+    lFace.classList.toggle('happy', !!l.ok);
+    island.classList.add('listening');
+    leave(1100);
+    if (!l.ok && l.cmd === 'clip') {
+      setTimeout(() => showHud({ kind: 'clip', icon: DONE.clip, title: 'Le clip à la voix est désactivé', sub: 'Réglages › Raccourcis › Clip à la voix' }, 3200), 1150);
+    }
+  });
 })();

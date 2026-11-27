@@ -19,7 +19,7 @@
     widgetTwitch: true, twitchTicker: true, twitchClientId: '', display: 'primary', openAtLogin: true,
     widgetValorant: true, valoRiotId: 'Lagon#EUW', valoRegion: 'eu', valoPlatform: 'pc',
     musicPriority: true, focusMode: false, focusHotkey: 'ctrl+alt+f',
-    discordMuteHotkey: 'ctrl+alt+m', discordDeafHotkey: 'ctrl+alt+d', reloadHotkey: 'ctrl+alt+r', noteHotkey: 'ctrl+alt+n', widgetNotes: true, widgetClips: true, voiceClip: false, notesReminders: true,
+    discordMuteHotkey: 'ctrl+alt+m', discordDeafHotkey: 'ctrl+alt+d', reloadHotkey: 'ctrl+alt+r', noteHotkey: 'ctrl+alt+n', widgetNotes: true, widgetClips: true, voiceClip: false, voiceAssistant: false, voiceChime: true, notesReminders: true,
     tabOrder: ['music', 'sound', 'pc', 'time', 'twitch', 'obs', 'valorant', 'discord'], welcomeDone: !q.has('welcome'),
   };
 
@@ -132,9 +132,11 @@
     { id: 'd3', text: 'Tournoi communautaire', date: dayOff(9), time: '18:00', done: false, rem: false, at: Date.now() - 9e6 },
     { id: 'd4', text: 'Changer la sensi à 0.32', date: null, time: null, done: true, rem: false, at: Date.now() - 8e6 },
   ];
+  window.lagonDemoFire = fire; // the preview can play app events (e.g. voice:listen)
   window.lagon = new Proxy({
     notesGet: () => R(JSON.parse(JSON.stringify(notes))), notesSave: (n) => { notes = n; return R(true); },
     onQuickNote: on('notes:quick'),
+    onListen: on('voice:listen'),
     clipLast: () => R({ game: 'Valorant', name: 'Valorant 2026.11.26 - 21.40.12.03.DVR.mp4', at: Date.now() - 50 * 60000, size: 209800000 }),
     voiceState: () => R({ state: 'off', lang: 'fr-FR', keys: 'Alt + Z', nvidia: true }),
     onState: on('media:state'), onLyrics: on('media:lyrics'), onHover: on('island:hover'), onAudio: on('sys:audio'),
