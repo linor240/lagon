@@ -182,9 +182,11 @@ body[data-attach="floating"] #island.focus:not(.open) { border-radius: 6px; }
   transition: opacity 0.25s var(--ease);
 }
 .c-text.swap { opacity: 0; }
-/* a long song name scrolling once (marqueeCheck): no "…" meanwhile, soft edges */
-.c-text.marquee { text-overflow: clip; mask-image: linear-gradient(90deg, transparent, #000 6px, #000 calc(100% - 10px), transparent); }
-.c-text.marquee .ct-in { display: inline-block; will-change: transform; }
+/* text that doesn't fit (marqueeFit): no "…" but a soft right edge; both edges while it slides */
+.c-text.over { text-overflow: clip; mask-image: linear-gradient(90deg, #000 calc(100% - 14px), transparent); }
+.c-text.over.moving { mask-image: linear-gradient(90deg, transparent, #000 8px, #000 calc(100% - 14px), transparent); }
+.c-text.over .ct-in { display: inline-block; will-change: transform; }
+.ct-dup { margin-left: 44px; } /* the copy that follows a looping song name */
 
 .c-clock {
   display: none;

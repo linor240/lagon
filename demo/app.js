@@ -13,9 +13,9 @@ let art = '';
 let lyrics = null;      // { key, synced: [{t,text}], plain, instrumental }
 let lyricIdx = -2;
 let compactLine = null;
-let marqueeSong = null;  // the song whose name already got (or is waiting for) its one scroll
-let marqueeFor = null;   // the closed bar's text still to scroll once (null: nothing to do)
-let marqueeTimers = [];  // the running scroll's steps
+let marquee = null;      // the closed bar's text scrolling, or waiting to (see marqueeCheck): { timer }
+let ctLyric = false;     // the closed bar shows a lyric line (it never scrolls, keeps its "…")
+let marqueeAfter = 0;    // don't measure the closed bar's text before this time (the bar is changing size)
 let songLine = null;     // "title · artist" of the song playing (the closed bar's text when no lyric line)
 let progPx = -1;         // music progress colour in the closed bar: last width drawn (half pixels)
 let hovering = false;
@@ -53,7 +53,6 @@ function setOpen(open) {
   if (open) hideOsd();
   if (!open) {
     if (quickOn && notesUi) notesUi.quickEnd(false); // closed some other way: no focus juggling
-    if (compactLine && compactLine === songLine) marqueeFor = compactLine; // a long song name scrolls again once closed
     window.lagon.keyboard(false);
     // settings are a detour: next time the island opens on the last real page
     if (page === 'settings') setTimeout(() => { if (!island.classList.contains('open')) setPage(userPage, true); }, 450);
@@ -185,7 +184,7 @@ function syncStats() {
   syncUsage();
   if (game) game.sync();
   if (notesUi) notesUi.sync();
-  if (marqueeTimers.length && !marqueeShown()) marqueeStop(); else marqueeCheck();
+  marqueeSync();
   if (rankUi) rankUi.sync();
   if (clipsUi) clipsUi.sync();
   const fpsPinned = !!(settings.fpsCounter && settings.barFps) && !settings.focusMode && !paused;
@@ -252,6 +251,7 @@ function render() {
   island.classList.toggle('no-media', !state.active);
   sendSizes(idle);
   island.classList.toggle('playing', !!(state.active && state.playing));
+  marqueeSync(); // the closed bar's text only scrolls while the music plays
   if (!state.active) return;
 
   if (el.art.getAttribute('src') !== art) {
@@ -354,9 +354,6 @@ function updateLyrics(pos) {
   if (line !== compactLine) {
     compactLine = line;
     el.cText.classList.add('swap');
-    // a new song: its name scrolls once if it doesn't fit (see marqueeCheck)
-    const song = trackKey(state);
-    if (song !== marqueeSong) { marqueeSong = song; marqueeFor = hasLine ? null : line; }
     setTimeout(() => {
       marqueeStop();
       const inner = document.createElement('span');
@@ -364,49 +361,92 @@ function updateLyrics(pos) {
       inner.textContent = line;
       el.cText.replaceChildren(inner);
       el.cText.classList.toggle('lyric', !!hasLine); // lyric lines use the lyrics font
+      ctLyric = !!hasLine;
+      marqueeFit(); // a song name: no "…" but a soft fade on the right edge if it doesn't fit
       el.cText.classList.remove('swap');
       marqueeCheck();
     }, 120);
   }
 }
 
-// ---------- long song names scroll once (closed bar) ----------
-// When a song starts and "title · artist" doesn't fit, it slides slowly to its end, waits, then comes
-// back with its "…". Once per song, only while the closed bar shows it (one CSS transition: nothing
-// runs the rest of the time). Stopped if the bar opens, a pop-up shows or a lyric line replaces it.
+// ---------- long song names loop (closed bar) ----------
+// When "title · artist" doesn't fit: no "…", it rests ~2.5 s at its start, slides left (~30 px/s) until
+// a copy of it that follows takes its place, rests again, and so on (endless, but only while the music
+// plays and the closed bar shows it). Lyric lines don't scroll (they keep their "…").
+// Moved from JS at ~30 fps in whole pixels (crisp text; a CSS animation would redraw at the screen's
+// refresh rate) and nothing runs during the rests. Stopped if the bar opens, a pop-up shows, the music
+// pauses, Lagon hides (fullscreen) or focus mode is on; it starts again from the beginning afterwards.
+const MQ_SPEED = 30;   // px a second
+const MQ_FRAME = 33;   // ms between two moves (~30 fps)
+const MQ_REST = 2600;  // ms the name rests at its start
 function marqueeShown() { // a function (hoisted): syncStats runs before this line on load
   return !paused && !settings.focusMode && !island.classList.contains('open')
-    && !island.classList.contains('osd') && !island.classList.contains('idle');
+    && !island.classList.contains('osd') && !island.classList.contains('idle')
+    && island.classList.contains('playing');
 }
+function marqueeSync() { if (marqueeShown()) marqueeCheck(); else marqueeStop(); }
 function marqueeStop() {
-  marqueeTimers.forEach(clearTimeout);
-  marqueeTimers = [];
-  el.cText.classList.remove('marquee');
+  if (!marquee) return;
+  clearTimeout(marquee.timer);
+  marquee = null;
+  el.cText.classList.remove('moving');
   const inner = el.cText.firstElementChild;
-  if (inner) { inner.style.transition = 'none'; inner.style.transform = ''; }
+  if (inner) inner.style.transform = '';
+}
+// Measures the song name: marks it "over" (soft right edge instead of "…") when it doesn't fit, adds
+// its following copy (.ct-dup) and returns how far it slides before looping (0 = it fits / a lyric).
+function marqueeFit() {
+  const inner = el.cText.firstElementChild;
+  const box = el.cText.clientWidth;
+  if (!inner || !box) return 0; // not laid out (idle bar)
+  const old = inner.querySelector('.ct-dup');
+  if (old) old.remove();
+  if (ctLyric) { el.cText.classList.remove('over'); return 0; } // lyric lines keep their "…"
+  const r = document.createRange();
+  r.selectNodeContents(inner);
+  const full = r.getBoundingClientRect().width; // the whole text, even the hidden part
+  const over = full > box + 1;
+  el.cText.classList.toggle('over', over);
+  if (!over) return 0;
+  const dup = document.createElement('span');
+  dup.className = 'ct-dup';
+  dup.setAttribute('aria-hidden', 'true');
+  dup.textContent = inner.firstChild ? inner.firstChild.nodeValue : '';
+  inner.append(dup);
+  return Math.round(dup.getBoundingClientRect().left - inner.getBoundingClientRect().left);
 }
 function marqueeCheck() {
-  if (!marqueeFor || marqueeTimers.length || compactLine !== marqueeFor || !marqueeShown()) return;
+  if (marquee || !marqueeShown()) return;
+  const m = { timer: 0 };
+  marquee = m;
+  // measured a bit later: the bar may still be changing size (closing, idle -> music, a pop-up ending)
+  m.timer = setTimeout(() => marqueeRun(m), Math.max(900, marqueeAfter - Date.now()));
+}
+function marqueeRun(m) {
+  if (marquee !== m) return;
+  if (!marqueeShown()) { marqueeStop(); return; }
   const inner = el.cText.firstElementChild;
-  if (!inner || !el.cText.clientWidth) return; // not laid out yet
-  marqueeFor = null;
-  const step = (ms, fn) => marqueeTimers.push(setTimeout(fn, ms));
-  // measured when it starts, not now: the bar may still be growing (idle -> music) at this moment
-  step(900, () => {
-    const r = document.createRange();
-    r.selectNodeContents(inner);
-    const full = r.getBoundingClientRect().width; // the whole text, even the part hidden by "…"
-    const box = el.cText.clientWidth;
-    if (!marqueeShown() || full <= box + 1) { marqueeStop(); return; } // fits: nothing to scroll
-    const dist = Math.ceil(full - box + 12);
-    const dur = Math.max(2.5, dist / 30); // ~30 px a second, easy to read
-    el.cText.classList.add('marquee');
-    void inner.offsetWidth; // start the transition from 0
-    inner.style.transition = `transform ${dur}s linear`;
-    inner.style.transform = `translateX(${-dist}px)`;
-    step(dur * 1000 + 1400, () => el.cText.classList.add('swap')); // fade out at the end…
-    step(dur * 1000 + 1700, () => { marqueeStop(); el.cText.classList.remove('swap'); }); // …back at the start
+  const dist = marqueeFit();
+  if (!dist) { m.timer = 0; return; } // fits: stays still until the text or the bar changes
+  const loop = () => marqueeMove(m, inner, dist, MQ_SPEED, () => {
+    inner.style.transform = ''; // the copy is exactly where the name started: back to 0 unseen
+    el.cText.classList.remove('moving');
+    m.timer = setTimeout(loop, MQ_REST);
   });
+  m.timer = setTimeout(loop, MQ_REST - 900);
+}
+function marqueeMove(m, inner, dist, speed, done) {
+  el.cText.classList.add('moving');
+  const t0 = performance.now();
+  let last = -1;
+  const frame = () => {
+    if (marquee !== m) return;
+    const x = Math.min(dist, Math.round(((performance.now() - t0) * speed) / 1000));
+    if (x !== last) { last = x; inner.style.transform = `translateX(${-x}px)`; }
+    if (x < dist) m.timer = setTimeout(frame, MQ_FRAME);
+    else done();
+  };
+  frame();
 }
 
 function updateClock() {
@@ -725,7 +765,8 @@ let osdBase = 290; // the closed bar's width when the pop-up started
 let calmTimer = null;
 function showHud(h, ms = 1800) {
   if (island.classList.contains('open') || settings.focusMode) return;
-  if (marqueeTimers.length) { marqueeStop(); marqueeFor = compactLine; } // cut by the pop-up: again after it
+  marqueeStop(); // cut by the pop-up: starts again after it (hideOsd)
+  marqueeAfter = Date.now() + 2000; // (measured once the pop-up is gone)
   hudKind = h.kind;
   if (!island.classList.contains('osd')) osdBase = island.offsetWidth;
   clearTimeout(calmTimer);
@@ -744,7 +785,8 @@ function hideOsd() {
   island.classList.remove('osd', 'osd-text', 'osd-wrap');
   clearTimeout(calmTimer);
   calmTimer = setTimeout(() => island.classList.remove('calm'), 500); // back to the usual size softly too
-  setTimeout(marqueeCheck, 450); // a song name waiting for its scroll (the bar is back to its size)
+  marqueeAfter = Date.now() + 450; // the closed bar's text scrolls again once the bar is back to its size
+  setTimeout(marqueeSync, 450);
 }
 
 const volumeHud = () => ({
@@ -1989,6 +2031,9 @@ function renderBarStats() {
     barXw = xw;
     island.style.setProperty('--xw', xw + 'px');
     sendSizes(island.classList.contains('idle'));
+    marqueeStop(); // less / more room for the text: measured again once the bar has its new size
+    marqueeAfter = Date.now() + 450;
+    setTimeout(marqueeSync, 450);
   }
   // FPS needs the FPS counter: lit only when both are on
   settingsPage.querySelectorAll('.bar-stats button').forEach((b) => b.classList.toggle('on', !!settings[b.dataset.k] && (b.dataset.k !== 'barFps' || !!settings.fpsCounter)));
